@@ -114,6 +114,10 @@ export interface ObservedTelemetryInputs {
   hour_of_day: number;
   is_night: boolean;
   is_rush_hour: boolean;
+  video_job_id?: string | null;
+  video_flow_rate_per_min?: number | null;
+  video_density_estimate?: string | null;
+  video_unique_vehicles?: number | null;
 }
 
 export interface RiskAssessmentResponse {
@@ -126,17 +130,99 @@ export interface RiskAssessmentResponse {
   severity_probability?: number | null;
   contributing_factors?: RiskFactors | null;
   observed_inputs: ObservedTelemetryInputs;
+  input_availability?: Record<string, string>;
+  video_analytics?: Record<string, any> | null;
   model_status:
     | 'ml_model_active'
+    | 'hybrid_heuristic (traffic unconfigured)'
     | 'heuristic_baseline'
     | 'model_unavailable'
     | 'telemetry_unavailable'
     | 'inference_error'
-    | 'unavailable';
+    | 'unavailable'
+    | string;
   model_version: string;
   status: 'success' | 'partial' | 'unavailable';
   error_message?: string | null;
   limitations_note: string;
+}
+
+export interface VehicleCounts {
+  car: number;
+  bus: number;
+  truck: number;
+  motorcycle: number;
+  total_unique: number;
+}
+
+export interface VideoAnalysisResult {
+  job_id: string;
+  location_id: string;
+  location_name: string;
+  filename: string;
+  file_size_bytes: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress_pct: number;
+  created_at: string;
+  completed_at?: string | null;
+  video_duration_sec?: number | null;
+  fps?: number | null;
+  total_frames_analyzed?: number | null;
+  counts: VehicleCounts;
+  peak_concurrent_vehicles?: number | null;
+  average_vehicles_per_frame?: number | null;
+  vehicle_flow_rate_per_min?: number | null;
+  density_estimate?: 'low' | 'moderate' | 'high' | 'severe' | string | null;
+  density_score?: number | null;
+  preview_image_path?: string | null;
+  annotated_video_path?: string | null;
+  error_message?: string | null;
+  disclaimer_note: string;
+}
+
+export interface VideoUploadResponse {
+  job_id: string;
+  location_id: string;
+  location_name: string;
+  filename: string;
+  file_size_bytes: number;
+  status: string;
+  message: string;
+}
+
+export interface HistoricalSummary {
+  metadata: {
+    data_source: string;
+    total_records_analyzed: number;
+    total_records_dataset: number;
+    date_range: string;
+    geographical_scope: string;
+    is_synthetic_benchmark: boolean;
+    documentation_note: string;
+  };
+  distributions: {
+    by_severity: Record<string, number>;
+    by_weather: Record<string, number>;
+    by_road_type: Record<string, number>;
+    by_hour: { hour: number; count: number }[];
+    by_traffic_density: Record<string, number>;
+  };
+}
+
+export interface HistoricalRecord {
+  accident_id: string;
+  date: string;
+  time: string;
+  latitude: string;
+  longitude: string;
+  accident_severity: string;
+  road_type: string;
+  speed_limit_kmh: string;
+  weather_conditions: string;
+  road_surface_conditions: string;
+  light_conditions: string;
+  traffic_density: string;
+  urban_or_rural_area: string;
 }
 
 export interface LocationOverview {

@@ -16,6 +16,7 @@ from app.schemas.risk import (
 from app.schemas.traffic import TrafficFlowData
 from app.schemas.weather import WeatherData
 from app.services.tomtom_service import TomTomTrafficService
+from app.services.video_service import VideoAnalyticsService
 from app.services.weather_service import OpenMeteoWeatherService
 
 logger = logging.getLogger("smart_traffic_backend.risk_engine")
@@ -99,6 +100,7 @@ class RiskPredictionEngine:
         location: Location,
         weather: Optional[WeatherData] = None,
         flow: Optional[TrafficFlowData] = None,
+        video_job_id: Optional[str] = None,
         force_refresh: bool = False,
     ) -> RiskAssessmentResponse:
         """Computes comprehensive risk score and severity prediction for a location.
@@ -232,7 +234,7 @@ class RiskPredictionEngine:
             )
             proba = model.predict_proba(features_df)
             severity_prob = round(float(proba[0][1]), 4)
-            model_status = "ml_model_active"
+            model_status = "ml_model_active" if has_live_flow else "hybrid_heuristic (traffic unconfigured)"
         except Exception as exc:
             logger.error("ML model inference failed for '%s': %s", location.id, str(exc))
             return RiskAssessmentResponse(
@@ -300,8 +302,8 @@ class RiskPredictionEngine:
                 + (temporal_factor * 15.0)
             )
             limitations_note = (
-                "Statistical risk estimate synthesized from live TomTom traffic flow, Open-Meteo weather, "
-                "and historical severity model. Never represents a confirmed accident."
+                "Composite risk index synthesized from live TomTom traffic flow, Open-Meteo weather, "
+                "temporal factors, and benchmark ML severity model (RandomForest, ROC-AUC: 0.566). Never represents a confirmed accident."
             )
         else:
             raw_score = (
@@ -310,8 +312,8 @@ class RiskPredictionEngine:
                 + (temporal_factor * 20.0)
             )
             limitations_note = (
-                "Statistical risk estimate derived from live Open-Meteo weather, temporal dynamics, and roadway geometry. "
-                "Traffic flow is currently unconfigured. Never represents a confirmed accident."
+                "Heuristic composite risk index calculated from live Open-Meteo weather, temporal dynamics, and benchmark ML severity propensity. "
+                "TomTom traffic flow is currently unconfigured (0% weight). Never represents a confirmed accident."
             )
 
         risk_score = round(max(5.0, min(95.0, raw_score)), 1)
@@ -325,6 +327,47 @@ class RiskPredictionEngine:
             risk_level = "MODERATE"
         else:
             risk_level = "LOW"
+
+        # Video Analytics integration
+        video_analytics_data = None
+        video_avail = "missing"
+        v_job_id = None
+        v_flow_rate = None
+        v_density = None
+        v_vehicles = None
+
+        if video_job_id:
+            job = VideoAnalyticsService.get_job(video_job_id)
+            if job:
+                if job.location_id == location.id:
+                    video_avail = "available" if job.status == "completed" else job.status
+                    video_analytics_data = {
+                        "job_id": job.job_id,
+                        "filename": job.filename,
+                        "status": job.status,
+                        "total_unique_vehicles": job.counts.total_unique,
+                        "vehicle_counts": job.counts.model_dump(),
+                        "flow_rate_per_min": job.vehicle_flow_rate_per_min,
+                        "density_estimate": job.density_estimate,
+                        "peak_concurrent_vehicles": job.peak_concurrent_vehicles,
+                        "video_duration_sec": job.video_duration_sec,
+                    }
+                    v_job_id = job.job_id
+                    v_flow_rate = job.vehicle_flow_rate_per_min
+                    v_density = job.density_estimate
+                    v_vehicles = job.counts.total_unique
+                else:
+                    video_avail = "location_mismatch"
+                    video_analytics_data = {
+                        "error": f"Video belongs to '{job.location_name}' ({job.location_id}), not '{location.name}'. Excluded from evaluation."
+                    }
+
+        input_availability = {
+            "video_analytics": video_avail,
+            "weather_telemetry": "available" if weather.status == "success" else weather.status,
+            "live_traffic_flow": "available" if has_live_flow else "unconfigured",
+            "historical_benchmark": "available",
+        }
 
         return RiskAssessmentResponse(
             location_id=location.id,
@@ -350,7 +393,13 @@ class RiskPredictionEngine:
                 hour_of_day=hour,
                 is_night=bool(is_night),
                 is_rush_hour=bool(is_rush_hour),
+                video_job_id=v_job_id,
+                video_flow_rate_per_min=v_flow_rate,
+                video_density_estimate=v_density,
+                video_unique_vehicles=v_vehicles,
             ),
+            input_availability=input_availability,
+            video_analytics=video_analytics_data,
             model_status=model_status,
             model_version="v1.0-randomforest-severity",
             status="success",

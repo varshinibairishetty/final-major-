@@ -25,6 +25,10 @@ class ObservedTelemetryInputs(BaseModel):
     hour_of_day: int = Field(..., description="Current local hour (0-23)")
     is_night: bool = Field(..., description="Night hours flag (22:00-05:00)")
     is_rush_hour: bool = Field(..., description="Peak office rush hour flag")
+    video_job_id: Optional[str] = Field(None, description="Associated video analytics job ID if attached")
+    video_flow_rate_per_min: Optional[float] = Field(None, description="Observed flow rate from video analytics")
+    video_density_estimate: Optional[str] = Field(None, description="Observed density estimate from video analytics")
+    video_unique_vehicles: Optional[int] = Field(None, description="Total unique vehicles tracked in video")
 
 
 class RiskAssessmentResponse(BaseModel):
@@ -60,6 +64,14 @@ class RiskAssessmentResponse(BaseModel):
     observed_inputs: ObservedTelemetryInputs = Field(
         ...,
         description="Empirical inputs passed to pipeline",
+    )
+    input_availability: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Source status for video, weather, traffic, and historical inputs",
+    )
+    video_analytics: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Video analytics breakdown if a video analysis job was provided",
     )
     model_status: str = Field(
         default="ml_model_active",

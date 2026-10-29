@@ -68,6 +68,10 @@ async def root():
             "incidents": "/api/v1/locations/{location_id}/incidents",
             "traffic_overview": "/api/v1/traffic-overview",
             "risk": "/api/v1/locations/{location_id}/risk",
+            "video_upload": "/api/v1/videos/upload",
+            "video_jobs": "/api/v1/videos/jobs",
+            "historical_summary": "/api/v1/historical/summary",
+            "historical_records": "/api/v1/historical/records",
         },
     }
 

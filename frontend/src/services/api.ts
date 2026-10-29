@@ -9,6 +9,10 @@ import {
   TrafficFlowData,
   LocationIncidentsResponse,
   RiskAssessmentResponse,
+  VideoAnalysisResult,
+  VideoUploadResponse,
+  HistoricalSummary,
+  HistoricalRecord,
 } from '../types';
 
 // Read API base URL from Vite environment variable with a resilient fallback
@@ -112,11 +116,93 @@ class ApiService {
    */
   async getLocationRisk(
     locationId: string,
+    videoJobId?: string,
     forceRefresh = false
   ): Promise<RiskAssessmentResponse> {
-    const query = forceRefresh ? '?force_refresh=true' : '';
+    const params = new URLSearchParams();
+    if (videoJobId) params.append('video_job_id', videoJobId);
+    if (forceRefresh) params.append('force_refresh', 'true');
+    const queryString = params.toString() ? `?${params.toString()}` : '';
     return this.request<RiskAssessmentResponse>(
-      `/locations/${encodeURIComponent(locationId)}/risk${query}`
+      `/locations/${encodeURIComponent(locationId)}/risk${queryString}`
+    );
+  }
+
+  /**
+   * Uploads recorded traffic video file and initiates YOLO detection.
+   */
+  async uploadTrafficVideo(file: File, locationId: string): Promise<VideoUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('location_id', locationId);
+
+    const url = `${API_BASE_URL}/videos/upload`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorBody = await response.json();
+        if (errorBody.detail) errorMessage = errorBody.detail;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return (await response.json()) as VideoUploadResponse;
+  }
+
+  /**
+   * Lists video analytics jobs with optional location filter.
+   */
+  async getVideoJobs(locationId?: string): Promise<VideoAnalysisResult[]> {
+    const query = locationId ? `?location_id=${encodeURIComponent(locationId)}` : '';
+    return this.request<VideoAnalysisResult[]>(`/videos/jobs${query}`);
+  }
+
+  /**
+   * Gets single video analysis status, vehicle counts, and flow rates.
+   */
+  async getVideoJob(jobId: string): Promise<VideoAnalysisResult> {
+    return this.request<VideoAnalysisResult>(`/videos/${encodeURIComponent(jobId)}`);
+  }
+
+  /**
+   * Retrieves historical accident distribution summary and time patterns.
+   */
+  async getHistoricalSummary(locationId?: string, radiusKm = 5.0): Promise<HistoricalSummary> {
+    const params = new URLSearchParams();
+    if (locationId) {
+      params.append('location_id', locationId);
+      params.append('radius_km', radiusKm.toString());
+    }
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return this.request<HistoricalSummary>(`/historical/summary${queryString}`);
+  }
+
+  /**
+   * Retrieves paginated historical accident records with optional filters.
+   */
+  async getHistoricalRecords(options?: {
+    locationId?: string;
+    severity?: string;
+    weather?: string;
+    roadType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ total: number; offset: number; limit: number; records: HistoricalRecord[] }> {
+    const params = new URLSearchParams();
+    if (options?.locationId) params.append('location_id', options.locationId);
+    if (options?.severity) params.append('severity', options.severity);
+    if (options?.weather) params.append('weather', options.weather);
+    if (options?.roadType) params.append('road_type', options.roadType);
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.offset) params.append('offset', options.offset.toString());
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return this.request<{ total: number; offset: number; limit: number; records: HistoricalRecord[] }>(
+      `/historical/records${queryString}`
     );
   }
 }

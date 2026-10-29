@@ -149,18 +149,43 @@ export const Header: React.FC<HeaderProps> = ({
               borderRadius: '9999px',
               fontSize: '0.78rem',
               fontWeight: 600,
-              background: riskModelStatus === 'active' ? '#f5f3ff' : '#fef2f2',
-              color: riskModelStatus === 'active' ? '#6d28d9' : '#991b1b',
-              border: `1px solid ${riskModelStatus === 'active' ? '#ddd6fe' : '#fecaca'}`,
+              background:
+                riskModelStatus === 'active'
+                  ? '#f5f3ff'
+                  : riskModelStatus === 'hybrid_partial'
+                  ? '#fffbeb'
+                  : '#fef2f2',
+              color:
+                riskModelStatus === 'active'
+                  ? '#6d28d9'
+                  : riskModelStatus === 'hybrid_partial'
+                  ? '#92400e'
+                  : '#991b1b',
+              border: `1px solid ${
+                riskModelStatus === 'active'
+                  ? '#ddd6fe'
+                  : riskModelStatus === 'hybrid_partial'
+                  ? '#fde68a'
+                  : '#fecaca'
+              }`,
             }}
             title={
               riskModelStatus === 'active'
-                ? 'RandomForest Accident Severity Model (v1.0) active in backend'
-                : 'Risk prediction model offline or unavailable'
+                ? 'Full multi-modal risk pipeline active (live flow + weather + ML severity)'
+                : riskModelStatus === 'hybrid_partial'
+                ? 'Hybrid risk baseline: Live Open-Meteo weather and benchmark ML severity active. TomTom traffic flow is unconfigured.'
+                : 'Risk estimation engine unavailable'
             }
           >
             <BrainCircuit size={14} />
-            <span>AI Risk Model: {riskModelStatus === 'active' ? 'Active (v1.0)' : 'Unavailable'}</span>
+            <span>
+              Risk Engine:{' '}
+              {riskModelStatus === 'active'
+                ? 'Active (v1.0)'
+                : riskModelStatus === 'hybrid_partial'
+                ? 'Hybrid Baseline (Weather Only)'
+                : 'Unavailable'}
+            </span>
           </div>
 
           {/* Refresh Button */}

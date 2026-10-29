@@ -208,7 +208,9 @@ export const LocationCard: React.FC<LocationCardProps> = ({
             </span>
           </div>
           <div style={{ fontSize: '0.68rem', marginTop: '0.2rem', opacity: 0.85 }}>
-            Model estimate (v1.0) &bull; Not a confirmed accident
+            {flow.status === 'success'
+              ? 'Multi-modal index • Live traffic + weather + ML severity'
+              : 'Hybrid baseline • Live weather + benchmark ML (traffic unconfigured)'}
           </div>
         </div>
       ) : (

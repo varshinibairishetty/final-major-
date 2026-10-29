@@ -49,7 +49,7 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
     if (!location) return;
     setIsRiskLoading(true);
     try {
-      const res = await api.getLocationRisk(location.location_id, true);
+      const res = await api.getLocationRisk(location.location_id, undefined, true);
       setRiskData(res);
     } catch {
       // keep existing state
@@ -386,7 +386,7 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
                       </span>
                     </div>
                     <div style={{ color: '#64748b', fontSize: '0.75rem', lineHeight: '1.4' }}>
-                      Relative propensity estimated by RandomForest classifier trained on historical crash features.
+                      Relative propensity estimated by RandomForest classifier (ROC-AUC: 0.566) trained on benchmark sample crash features.
                       {riskData.severity_probability !== null && riskData.severity_probability !== undefined && (
                         <span> Propensity weight: <strong>{Math.round(riskData.severity_probability * 100)}%</strong>.</span>
                       )}

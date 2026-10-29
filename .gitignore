@@ -64,7 +64,11 @@ data/locations/*
 !data/locations/.gitkeep
 !data/locations/*.json
 
-# IDE & OS files
+# Uploads and video artifacts
+data/uploads/videos/*
+data/uploads/previews/*
+!data/uploads/.gitkeep
+*.pt
 .vscode/
 .idea/
 *.swp

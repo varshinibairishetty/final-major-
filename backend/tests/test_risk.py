@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from app.core.config import settings
 from app.main import app
 from app.schemas.risk import RiskAssessmentResponse
 from app.services.cache import memory_cache
@@ -90,31 +91,58 @@ async def test_risk_endpoint_with_active_ml_model():
             return httpx.Response(200, json=mock_flow, request=req)
         return httpx.Response(404, request=req)
 
-    with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as patched_client_get:
-        patched_client_get.side_effect = mock_get
+    with patch.object(settings, "TOMTOM_API_KEY", "mock_valid_key"):
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as patched_client_get:
+            patched_client_get.side_effect = mock_get
 
-        response = client.get("/api/v1/locations/hyd-gachibowli/risk")
-        assert response.status_code == 200
-        data = response.json()
+            response = client.get("/api/v1/locations/hyd-gachibowli/risk")
+            assert response.status_code == 200
+            data = response.json()
 
-        assert data["location_id"] == "hyd-gachibowli"
-        assert "Gachibowli" in data["location_name"]
-        assert data["status"] == "success"
-        assert 0.0 <= data["risk_score"] <= 100.0
-        assert data["risk_level"] in ["LOW", "MODERATE", "HIGH", "CRITICAL"]
-        assert data["predicted_severity_class"] in ["Minor", "Severe/Fatal"]
-        assert 0.0 <= data["severity_probability"] <= 1.0
-        assert data["model_status"] == "ml_model_active"
+            assert data["location_id"] == "hyd-gachibowli"
+            assert "Gachibowli" in data["location_name"]
+            assert data["status"] == "success"
+            assert 0.0 <= data["risk_score"] <= 100.0
+            assert data["risk_level"] in ["LOW", "MODERATE", "HIGH", "CRITICAL"]
+            assert data["predicted_severity_class"] in ["Minor", "Severe/Fatal"]
+            assert 0.0 <= data["severity_probability"] <= 1.0
+            assert data["model_status"] == "ml_model_active"
 
-        # Factors breakdown
-        factors = data["contributing_factors"]
-        assert "congestion_factor" in factors
-        assert "weather_factor" in factors
-        assert "temporal_factor" in factors
-        assert "road_geometry_factor" in factors
+            # Factors breakdown
+            factors = data["contributing_factors"]
+            assert "congestion_factor" in factors
+            assert "weather_factor" in factors
+            assert "temporal_factor" in factors
+            assert "road_geometry_factor" in factors
 
-        # Limitation disclaimer
-        assert "Never represents a confirmed accident" in data["limitations_note"]
+            # Limitation disclaimer
+            assert "Never represents a confirmed accident" in data["limitations_note"]
+
+
+@pytest.mark.asyncio
+async def test_risk_endpoint_with_unconfigured_traffic():
+    """Verify that when TomTom key is unconfigured, risk endpoint returns honest hybrid_heuristic status."""
+    mock_weather = {
+        "latitude": 17.44,
+        "longitude": 78.35,
+        "current": {
+            "time": "2026-10-29T18:45",
+            "temperature_2m": 25.0,
+            "relative_humidity_2m": 60,
+            "precipitation": 0.0,
+            "weather_code": 0,
+            "wind_speed_10m": 5.0,
+        },
+    }
+    req = httpx.Request("GET", "https://api.test/weather")
+    with patch.object(settings, "TOMTOM_API_KEY", ""):
+        with patch.object(httpx.AsyncClient, "get", return_value=httpx.Response(200, json=mock_weather, request=req)):
+            response = client.get("/api/v1/locations/hyd-gachibowli/risk")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["model_status"] == "hybrid_heuristic (traffic unconfigured)"
+            assert data["status"] == "success"
+            assert data["contributing_factors"]["congestion_factor"] == 0.0
 
 
 @pytest.mark.asyncio
