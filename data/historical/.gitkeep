@@ -1,0 +1,3 @@
+# This file ensures Git tracks the data/historical directory.
+# Historical accident and traffic datasets for ML evaluation will be placed here.
+# Datasets should not be committed to Git if they are large or private.

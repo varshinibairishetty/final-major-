@@ -1,0 +1,2 @@
+# Preserves frontend/src/types/ in Git.
+# TypeScript domain interfaces and API payload types will be placed here.

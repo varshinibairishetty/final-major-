@@ -1,0 +1,2 @@
+# Preserves frontend/src/hooks/ in Git.
+# Custom React hooks (polling, map state, telemetry hooks) will be placed here.
