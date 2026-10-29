@@ -1,0 +1,48 @@
+{
+  "description": "Configurable traffic monitoring locations in Hyderabad, India. Approximate public area coordinates used for geospatial flow queries, not verified CCTV or physical hardware camera positions.",
+  "city": "Hyderabad",
+  "state": "Telangana",
+  "country": "India",
+  "monitoring_points": [
+    {
+      "id": "hyd-gachibowli",
+      "name": "Gachibowli Junction",
+      "latitude": 17.4401,
+      "longitude": 78.3489,
+      "area_type": "Major IT Corridor / Arterial Junction",
+      "description": "High-density intersection connecting Outer Ring Road, Financial District, and Hitec City."
+    },
+    {
+      "id": "hyd-hitech-city",
+      "name": "Hitech City / Cyber Towers",
+      "latitude": 17.4474,
+      "longitude": 78.3762,
+      "area_type": "Commercial IT Corridor",
+      "description": "Key tech corridor intersection experiencing substantial peak-hour vehicle volume."
+    },
+    {
+      "id": "hyd-madhapur",
+      "name": "Madhapur (Mindspace Junction)",
+      "latitude": 17.4483,
+      "longitude": 78.3915,
+      "area_type": "Commercial & Residential Transit Corridor",
+      "description": "Major feeder junction connecting Durgam Cheruvu Cable Bridge and residential zones."
+    },
+    {
+      "id": "hyd-kukatpally",
+      "name": "Kukatpally (Y Junction)",
+      "latitude": 17.4849,
+      "longitude": 78.4138,
+      "area_type": "High-volume Commercial Transit Hub",
+      "description": "Heavy mixed-traffic junction along the NH 65 corridor connecting western suburbs to core city."
+    },
+    {
+      "id": "hyd-jubilee-hills",
+      "name": "Jubilee Hills Checkpost",
+      "latitude": 17.4319,
+      "longitude": 78.4073,
+      "area_type": "Arterial Hill Corridor / Intersection",
+      "description": "Critical arterial convergence connecting Jubilee Hills, Banjara Hills, and Madhapur."
+    }
+  ]
+}

@@ -97,6 +97,40 @@ export interface LocationIncidentsResponse {
   matching_method: string;
 }
 
+export interface RiskFactors {
+  congestion_factor: number;
+  weather_factor: number;
+  temporal_factor: number;
+  road_geometry_factor: number;
+}
+
+export interface ObservedTelemetryInputs {
+  current_speed_kmh?: number | null;
+  free_flow_speed_kmh?: number | null;
+  congestion_ratio?: number | null;
+  weather_description: string;
+  rain_mm?: number | null;
+  road_type: string;
+  hour_of_day: number;
+  is_night: boolean;
+  is_rush_hour: boolean;
+}
+
+export interface RiskAssessmentResponse {
+  location_id: string;
+  location_name: string;
+  timestamp: string;
+  risk_score: number;
+  risk_level: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+  predicted_severity_class: string;
+  severity_probability: number;
+  contributing_factors: RiskFactors;
+  observed_inputs: ObservedTelemetryInputs;
+  model_status: 'ml_model_active' | 'heuristic_baseline' | 'unavailable';
+  model_version: string;
+  limitations_note: string;
+}
+
 export interface LocationOverview {
   location_id: string;
   location_name: string;

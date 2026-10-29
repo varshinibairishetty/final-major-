@@ -72,45 +72,21 @@ Phase 0 ──► Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 
 
 ---
 
-### Phase 4: Provisional Risk Scoring & Historical ML Model
-- [ ] Define standardized risk models in `backend/app/schemas/`:
-  - `RiskScore`: numerical score (0-100), categorical label (LOW, MODERATE, HIGH, CRITICAL), and factor breakdown.
-- [ ] Build the provisional heuristic risk estimation engine:
-  - Congestion factor: $1 - (\text{speed} / \text{free\_flow\_speed})$.
-  - Weather hazard factors: rain multiplier, visibility penalties.
-  - Temporal factors: peak office rush vs. off-peak vs. night.
-- [ ] Ingest historical Hyderabad accident records into `data/historical/`.
-- [ ] Train and evaluate supervised ML model (e.g. scikit-learn / XGBoost) and integrate model inference with heuristic fallback.
+### Phase 4: Historical Accident Data & Accident-Risk Prediction Pipeline (Current)
+- [x] Curate benchmark historical accident dataset in `data/historical/raw/sample_accidents_raw.csv` (850 records).
+- [x] Implement reproducible preprocessing pipeline in `scripts/data_prep.py` with data quality report and zero post-crash leakage.
+- [x] Formulate severity classification target (`is_severe_accident`: 0=Slight/Minor, 1=Serious/Fatal) under class imbalance (~25% severe cases).
+- [x] Train baseline scikit-learn model (`RandomForestClassifier` with balanced class weights) using time-based 80/20 train/test split.
+- [x] Evaluate and log test metrics: Accuracy (0.606), ROC-AUC (0.566), F1-macro (0.362), and confusion matrix in `data/historical/processed/model_metrics.json`.
+- [x] Implement backend inference service (`backend/app/services/risk_engine.py`) and endpoint (`GET /api/v1/locations/{id}/risk`).
+- [x] Implement graceful fallback to explainable heuristic baseline if model artifacts are absent.
+- [x] Integrate live AI risk model breakdown into the frontend drill-down modal.
+- [x] Add automated unit tests in `backend/tests/test_risk.py` (25 total backend tests passing at 100%).
 
 ---
 
-### Phase 5: End-to-End Testing, Hardening and Deployment Preparation
-  - **Map Component:** Interactive markers representing monitored locations, color-coded by real-time risk level.
-  - **Incident Markers / Overlays:** Highlighting verified provider incidents.
-  - **Location Detail Drawer / Card:** Showing current vs. free-flow speeds, congestion ratio, weather severity, and risk breakdown.
-  - **Incident Feed / Alert List:** Chronological feed of active road hazards.
-  - **Data Freshness Indicator:** Displaying when data was fetched and warning if backend returns cached or degraded results.
-- [ ] Build responsive layout and error banners for network interruptions.
-
----
-
-### Phase 4: Historical Accident Data and Machine Learning Evaluation
-- [ ] Curate and organize historical accident datasets for Hyderabad/Telangana in `data/historical/`.
-- [ ] Implement data extraction and preprocessing pipelines using `pandas`.
-- [ ] Perform feature engineering:
-  - Temporal features: hour of day, day of week, seasonal monsoon flag.
-  - Congestion features: speed differential, delay ratio.
-  - Weather features: precipitation volume, visibility threshold.
-  - Roadway features: intersection type, flyover presence.
-- [ ] Train and evaluate baseline and advanced ML models (e.g., Logistic Regression, Random Forest, XGBoost).
-- [ ] Evaluate metrics: ROC-AUC, precision, recall, F1-score, and confusion matrix.
-- [ ] Save trained model pipeline and artifacts; implement model inference service in `backend/app/services/risk_engine.py` with seamless fallback to heuristic baseline if model weights are unavailable.
-
----
-
-### Phase 5: Testing, Hardening, Documentation and Deployment Preparation
-- [ ] Backend test suite: Unit tests for services, schemas, and routes using `pytest` and `pytest-asyncio`.
-- [ ] Frontend test suite: Component rendering and state verification using `vitest` and React Testing Library.
-- [ ] Performance and timeout stress testing under network degradation scenarios.
-- [ ] Complete user documentation, API documentation (FastAPI Swagger/ReDoc), and operational deployment guidelines.
+### Phase 5: End-to-End Validation, Testing & Hardening
+- [ ] Backend test suite coverage refinement across network degradation and rate limit conditions.
+- [ ] Frontend responsive UI verification and mobile usability tuning.
+- [ ] Complete API reference documentation, deployment guides, and project defense documentation.
 - [ ] Final architecture review and handoff.

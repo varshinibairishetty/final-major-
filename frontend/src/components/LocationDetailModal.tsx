@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { LocationOverview } from '../types';
+import React, { useState, useEffect } from 'react';
+import { LocationOverview, RiskAssessmentResponse } from '../types';
+import { api } from '../services/api';
 import {
   X,
   MapPin,
@@ -8,8 +9,9 @@ import {
   AlertTriangle,
   Info,
   ShieldAlert,
-  ShieldCheck,
   CheckCircle2,
+  BrainCircuit,
+  Activity,
 } from 'lucide-react';
 
 interface LocationDetailModalProps {
@@ -21,7 +23,22 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
   location,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<'traffic' | 'incidents' | 'weather'>('traffic');
+  const [activeTab, setActiveTab] = useState<'risk' | 'traffic' | 'incidents' | 'weather'>('risk');
+  const [riskData, setRiskData] = useState<RiskAssessmentResponse | null>(null);
+  const [isRiskLoading, setIsRiskLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (location) {
+      setIsRiskLoading(true);
+      api
+        .getLocationRisk(location.location_id)
+        .then((res) => setRiskData(res))
+        .catch(() => setRiskData(null))
+        .finally(() => setIsRiskLoading(false));
+    } else {
+      setRiskData(null);
+    }
+  }, [location]);
 
   if (!location) return null;
 
@@ -118,6 +135,27 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
           }}
         >
           <button
+            onClick={() => setActiveTab('risk')}
+            style={{
+              flex: 1,
+              padding: '0.75rem 0.5rem',
+              border: 'none',
+              borderBottom: `2px solid ${activeTab === 'risk' ? '#2563eb' : 'transparent'}`,
+              background: 'transparent',
+              color: activeTab === 'risk' ? '#2563eb' : '#64748b',
+              fontWeight: activeTab === 'risk' ? 700 : 500,
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            <BrainCircuit size={16} />
+            <span>AI Risk Model</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('traffic')}
             style={{
               flex: 1,
@@ -183,6 +221,167 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
 
         {/* Tab Body */}
         <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+          {/* TAB 0: AI RISK ASSESSMENT */}
+          {activeTab === 'risk' && (
+            <div>
+              {isRiskLoading ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                  <Activity size={28} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 0.5rem auto', color: '#2563eb' }} />
+                  <div>Evaluating live multi-modal risk pipeline...</div>
+                </div>
+              ) : riskData ? (
+                <div>
+                  {/* Risk Score & Level Box */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      borderRadius: '10px',
+                      padding: '1.25rem',
+                      border: '1px solid #e2e8f0',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '1rem',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                        Estimated Accident Risk Index
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginTop: '0.2rem' }}>
+                        <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#0f172a' }}>
+                          {riskData.risk_score}
+                        </span>
+                        <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>/ 100</span>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <span
+                        style={{
+                          padding: '0.35rem 0.85rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          background:
+                            riskData.risk_level === 'CRITICAL'
+                              ? '#fee2e2'
+                              : riskData.risk_level === 'HIGH'
+                              ? '#ffedd5'
+                              : riskData.risk_level === 'MODERATE'
+                              ? '#fef3c7'
+                              : '#dcfce7',
+                          color:
+                            riskData.risk_level === 'CRITICAL'
+                              ? '#991b1b'
+                              : riskData.risk_level === 'HIGH'
+                              ? '#9a3412'
+                              : riskData.risk_level === 'MODERATE'
+                              ? '#92400e'
+                              : '#166534',
+                          border: '1px solid currentColor',
+                        }}
+                      >
+                        {riskData.risk_level} RISK
+                      </span>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.4rem' }}>
+                        Pipeline: <strong>{riskData.model_status}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ML Severity Prediction */}
+                  <div
+                    style={{
+                      background: '#f1f5f9',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '8px',
+                      marginBottom: '1rem',
+                      fontSize: '0.82rem',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: '0.2rem' }}>
+                      ML Model Severity Propensity: <span style={{ color: '#2563eb' }}>{riskData.predicted_severity_class}</span>
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                      Calibrated Severe Injury Probability: <strong>{Math.round(riskData.severity_probability * 100)}%</strong> (Model: {riskData.model_version})
+                    </div>
+                  </div>
+
+                  {/* Factor Contribution Progress Bars */}
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.6rem' }}>
+                    Risk Factor Breakdown:
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.78rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
+                        <span>Congestion & Speed Deficit Weight</span>
+                        <span>{Math.round(riskData.contributing_factors.congestion_factor * 100)}%</span>
+                      </div>
+                      <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${riskData.contributing_factors.congestion_factor * 100}%`, background: '#2563eb' }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
+                        <span>Atmospheric Weather Hazard Weight</span>
+                        <span>{Math.round(riskData.contributing_factors.weather_factor * 100)}%</span>
+                      </div>
+                      <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${riskData.contributing_factors.weather_factor * 100}%`, background: '#0284c7' }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
+                        <span>Temporal Hazard (Rush Hour / Night)</span>
+                        <span>{Math.round(riskData.contributing_factors.temporal_factor * 100)}%</span>
+                      </div>
+                      <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${riskData.contributing_factors.temporal_factor * 100}%`, background: '#d97706' }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
+                        <span>Roadway & Junction Geometry</span>
+                        <span>{Math.round(riskData.contributing_factors.road_geometry_factor * 100)}%</span>
+                      </div>
+                      <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${riskData.contributing_factors.road_geometry_factor * 100}%`, background: '#64748b' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mandatory Integrity Note */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      padding: '0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      color: '#64748b',
+                      display: 'flex',
+                      gap: '0.5rem',
+                      marginTop: '1.25rem',
+                      border: '1px solid #e2e8f0',
+                    }}
+                  >
+                    <Info size={16} style={{ flexShrink: 0 }} />
+                    <span>{riskData.limitations_note}</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '8px' }}>
+                  <ShieldAlert size={32} color="#94a3b8" style={{ margin: '0 auto 0.5rem auto' }} />
+                  <div>Risk assessment service is currently unavailable.</div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* TAB 1: TRAFFIC FLOW */}
           {activeTab === 'traffic' && (
             <div>
@@ -426,27 +625,6 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
               </div>
             </div>
           )}
-
-          {/* Persistent Phase 4 Notice */}
-          <div
-            style={{
-              marginTop: '1.5rem',
-              padding: '0.85rem',
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              color: '#1e40af',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.6rem',
-            }}
-          >
-            <ShieldCheck size={20} style={{ flexShrink: 0 }} />
-            <div>
-              <strong>Accident Risk Prediction:</strong> Prediction not available yet. Supervised ML modeling (scikit-learn & XGBoost) on historical Hyderabad accident records will be introduced in Phase 4.
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

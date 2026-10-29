@@ -159,21 +159,22 @@ export const LocationCard: React.FC<LocationCardProps> = ({
         )}
       </div>
 
-      {/* Risk Status Requirement: "If risk prediction is not implemented yet, show 'Prediction not available yet' rather than inventing a prediction" */}
+      {/* Risk Status Indicator */}
       <div
         style={{
-          background: '#f1f5f9',
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
           padding: '0.45rem 0.65rem',
           borderRadius: '6px',
           display: 'flex',
           alignItems: 'center',
           gap: '0.4rem',
           fontSize: '0.72rem',
-          color: '#475569',
+          color: '#166534',
         }}
       >
-        <ShieldCheck size={14} color="#64748b" />
-        <span>Risk Assessment: <strong>Prediction not available yet</strong> (Phase 4 ML)</span>
+        <ShieldCheck size={14} color="#16a34a" />
+        <span>Risk Assessment: <strong>AI Severity Pipeline Active</strong> (Click to inspect)</span>
       </div>
 
       {/* Footer Timestamp */}

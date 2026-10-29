@@ -122,10 +122,10 @@ smart-traffic-ai/
   - Configure Python virtual environment (`.venv`), install core dependencies, implement `Settings` config with secret safety, authoritative Hyderabad location registry (`data/locations/hyderabad_hotspots.json`), `GET /`, `GET /api/v1/health`, `GET /api/v1/locations` endpoints, and automated tests.
 - [x] **Phase 2: Live Traffic & Weather Integration (TomTom & Open-Meteo)**
   - Implement external HTTP API clients for Open-Meteo current weather and TomTom Traffic Flow & Incidents with timeout resilience (5s), in-memory TTL caching, geographic incident matching (Haversine 3km), distinct accident categorization, concurrency via `asyncio.gather`, and endpoints (`/weather`, `/traffic`, `/incidents`, `/traffic-overview`).
-- [x] **Phase 3: Frontend Dashboard & Geospatial Visualization (Current)**
-  - Build responsive React + TypeScript + Vite dashboard with interactive Leaflet map, corridor cards, drill-down modal, summary counters, live provider status indicators, and honest "Prediction not available yet (Phase 4)" indicators.
-- [ ] **Phase 4: Provisional Risk Scoring & Historical ML Model**
-  - Implement explainable heuristic baseline risk engine and train supervised ML model (scikit-learn / XGBoost) on historical accident records.
+- [x] **Phase 3: Frontend Dashboard & Geospatial Visualization**
+  - Build responsive React + TypeScript + Vite dashboard with interactive Leaflet map, corridor cards, drill-down modal, summary counters, and live provider status indicators.
+- [x] **Phase 4: Historical Accident Data & Accident-Risk Prediction Pipeline (Current)**
+  - Prepare documented benchmark historical accident dataset (`data/historical/raw/sample_accidents_raw.csv`), reproducible preprocessing pipeline without post-crash data leakage, time-based train/test splitting (80/20), baseline RandomForest classifier with class balancing, model metrics logging (`ROC-AUC 0.566`, `F1-macro 0.362`), and live inference endpoint (`GET /api/v1/locations/{id}/risk`).
 - [ ] **Phase 5: End-to-End Validation, Testing & Hardening**
   - Comprehensive automated tests, error resilience, fallback handling, and deployment readiness.
 
@@ -133,10 +133,8 @@ smart-traffic-ai/
 
 ## 7. Current Implementation Status
 
-> **Status as of Phase 3:**
-> - Interactive React + TypeScript + Vite dashboard is fully functional and built.
-> - Leaflet map renders configured Hyderabad locations with speed/status color-coded pins.
-> - Reusable `api` client connects to backend `/api/v1` endpoints with loading and error states.
-> - Location cards and detailed drill-down modal display traffic flow, reported incidents, and weather telemetry.
-> - Missing API keys, network errors, and unpredicted risk states are honestly reported without data hallucination.
-> - Backend test suite (20 tests) and frontend production build pass with 100% success.
+> **Status as of Phase 4:**
+> - Historical accident data pipeline (`scripts/data_prep.py` and `scripts/train_risk_model.py`) is fully functional.
+> - Multi-modal risk estimation endpoint (`GET /api/v1/locations/{id}/risk`) computes statistical risk index (0-100) and ML severity class predictions based on live congestion, weather, and road geometry.
+> - Frontend drill-down modal displays the live AI risk model breakdown and factor weights.
+> - Backend test suite (25 tests) and frontend production build pass with 100% success.

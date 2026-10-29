@@ -58,7 +58,7 @@ async def root():
         "project": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "status": "operational",
-        "phase": "Phase 2 - Live Traffic and Weather API Integration",
+        "phase": "Phase 4 - Historical Data & Accident Risk Prediction Pipeline",
         "endpoints": {
             "docs": "/docs",
             "health": "/api/v1/health",
@@ -67,6 +67,7 @@ async def root():
             "traffic": "/api/v1/locations/{location_id}/traffic",
             "incidents": "/api/v1/locations/{location_id}/incidents",
             "traffic_overview": "/api/v1/traffic-overview",
+            "risk": "/api/v1/locations/{location_id}/risk",
         },
     }
 

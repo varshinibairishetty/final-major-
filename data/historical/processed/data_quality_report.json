@@ -1,0 +1,41 @@
+{
+  "dataset_inspection_date": "2026-10-29",
+  "total_records": 850,
+  "date_range_start": "2023-01-01",
+  "date_range_end": "2024-06-30",
+  "duplicate_accident_ids": 0,
+  "missing_values_by_column": {
+    "accident_id": 0,
+    "timestamp": 0,
+    "hour_of_day": 0,
+    "day_of_week": 0,
+    "is_weekend": 0,
+    "is_night": 0,
+    "is_rush_hour": 0,
+    "speed_limit_kmh": 0,
+    "road_type": 0,
+    "weather_condition": 0,
+    "surface_condition": 0,
+    "traffic_density": 0,
+    "is_severe_accident": 0
+  },
+  "target_variable": "is_severe_accident",
+  "class_distribution": {
+    "slight_0": 635,
+    "severe_fatal_1": 215,
+    "severe_ratio": 0.2529
+  },
+  "features_included": [
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "is_night",
+    "is_rush_hour",
+    "speed_limit_kmh",
+    "road_type",
+    "weather_condition",
+    "surface_condition",
+    "traffic_density"
+  ],
+  "leakage_prevention_note": "Excluded all post-crash outcome features (e.g. number of vehicles damaged, fatalities count, post-crash delay) to ensure model only evaluates pre-conditions."
+}

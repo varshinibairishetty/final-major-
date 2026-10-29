@@ -50,12 +50,19 @@ dist-ssr/
 *.local
 *.tsbuildinfo
 
-# Data files (do not commit raw historical datasets without approval)
-data/historical/*
-!data/historical/.gitkeep
+# Data files (exclude large raw historical datasets; preserve documentation and metadata)
+data/historical/raw/*.csv
+data/historical/raw/*.parquet
+!data/historical/raw/.gitkeep
+data/historical/processed/*.csv
+data/historical/processed/*.joblib
+data/historical/processed/*.parquet
+!data/historical/processed/.gitkeep
+!data/historical/README.md
+!data/historical/processed/*.json
 data/locations/*
 !data/locations/.gitkeep
-!data/locations/*.json.example
+!data/locations/*.json
 
 # IDE & OS files
 .vscode/

@@ -1,0 +1,55 @@
+{
+  "model_name": "RandomForest_SeverityBaseline",
+  "training_date": "2026-10-29",
+  "target_definition": "is_severe_accident (0=Slight/Minor, 1=Serious/Fatal)",
+  "split_method": "Time-based 80/20 split (strictly ordered by timestamp)",
+  "train_set": {
+    "records": 680,
+    "date_range": [
+      "2023-01-01",
+      "2024-03-23"
+    ],
+    "severe_class_count": 169,
+    "slight_class_count": 511
+  },
+  "test_set": {
+    "records": 170,
+    "date_range": [
+      "2024-03-23",
+      "2024-06-30"
+    ],
+    "severe_class_count": 46,
+    "slight_class_count": 124
+  },
+  "test_metrics": {
+    "accuracy": 0.6059,
+    "precision_severe_class": 0.322,
+    "recall_severe_class": 0.413,
+    "f1_score_severe_class": 0.3619,
+    "f1_macro": 0.5384,
+    "roc_auc": 0.5664,
+    "confusion_matrix": {
+      "tn": 84,
+      "fp": 40,
+      "fn": 27,
+      "tp": 19
+    }
+  },
+  "input_features": {
+    "numeric": [
+      "hour_of_day",
+      "day_of_week",
+      "is_weekend",
+      "is_night",
+      "is_rush_hour",
+      "speed_limit_kmh"
+    ],
+    "categorical": [
+      "road_type",
+      "weather_condition",
+      "surface_condition",
+      "traffic_density"
+    ]
+  },
+  "evaluation_verdict": "Achieved ROC-AUC of 0.566 and F1-macro of 0.538 on the held-out test partition under class imbalance (~25% severe cases)."
+}

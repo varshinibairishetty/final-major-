@@ -109,6 +109,7 @@ cd backend
 | `GET /api/v1/locations/{id}/weather` | `GET` | Real-time weather observation from Open-Meteo |
 | `GET /api/v1/locations/{id}/traffic` | `GET` | Real-time speed, delay, and congestion index from TomTom |
 | `GET /api/v1/locations/{id}/incidents` | `GET` | Active provider-reported incidents and accidents |
+| `GET /api/v1/locations/{id}/risk` | `GET` | Multi-factor accident risk score (0-100) and ML severity prediction |
 | `GET /api/v1/traffic-overview` | `GET` | Concurrent city-wide aggregation across all monitored locations |
 | `GET /docs` | `GET` | Interactive Swagger API documentation |
 | `GET /redoc` | `GET` | ReDoc API documentation |

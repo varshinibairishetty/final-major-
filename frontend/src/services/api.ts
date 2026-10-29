@@ -8,6 +8,7 @@ import {
   WeatherData,
   TrafficFlowData,
   LocationIncidentsResponse,
+  RiskAssessmentResponse,
 } from '../types';
 
 // Read API base URL from Vite environment variable with a resilient fallback
@@ -103,6 +104,19 @@ class ApiService {
     });
     return this.request<LocationIncidentsResponse>(
       `/locations/${encodeURIComponent(locationId)}/incidents?${params.toString()}`
+    );
+  }
+
+  /**
+   * Fetches statistical accident risk assessment and ML severity propensity for a location.
+   */
+  async getLocationRisk(
+    locationId: string,
+    forceRefresh = false
+  ): Promise<RiskAssessmentResponse> {
+    const query = forceRefresh ? '?force_refresh=true' : '';
+    return this.request<RiskAssessmentResponse>(
+      `/locations/${encodeURIComponent(locationId)}/risk${query}`
     );
   }
 }
