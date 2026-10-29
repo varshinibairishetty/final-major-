@@ -58,7 +58,7 @@ async def root():
         "project": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "status": "operational",
-        "phase": "Phase 4 - Historical Data & Accident Risk Prediction Pipeline",
+        "phase": "Phase 6 - End-to-End Verification & Project Readiness",
         "endpoints": {
             "docs": "/docs",
             "health": "/api/v1/health",

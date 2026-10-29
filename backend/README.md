@@ -19,27 +19,31 @@ backend/
 │   │       ├── health.py    # Health check endpoint (/api/v1/health)
 │   │       ├── locations.py # Hyderabad locations endpoint (/api/v1/locations)
 │   │       ├── traffic.py   # Traffic flow, incidents, and overview endpoints
-│   │       └── weather.py   # Open-Meteo weather endpoint
+│   │       ├── weather.py   # Open-Meteo weather endpoint
+│   │       └── risk.py      # Multi-modal accident risk assessment endpoint
 │   ├── core/
 │   │   ├── __init__.py
 │   │   └── config.py        # Environment settings (safe representation, no leaked secrets)
-│   ├── models/              # Domain entities
+│   ├── models/              # Trained ML model artifacts (model_baseline.joblib)
 │   ├── schemas/             # Pydantic validation schemas
 │   │   ├── __init__.py
 │   │   ├── location.py      # Location and LocationListResponse models
 │   │   ├── traffic.py       # TrafficFlowData, TrafficIncident, Overview models
-│   │   └── weather.py       # WeatherData normalization models
+│   │   ├── weather.py       # WeatherData normalization models
+│   │   └── risk.py          # RiskAssessmentResponse, RiskFactors, Telemetry inputs
 │   └── services/            # Core business logic and external API integrations
 │       ├── __init__.py
 │       ├── cache.py         # Thread-safe in-memory TTL caching layer
 │       ├── location_service.py # Authoritative location loader
 │       ├── tomtom_service.py   # TomTom Flow & Incidents client
-│       └── weather_service.py  # Open-Meteo weather client
+│       ├── weather_service.py  # Open-Meteo weather client
+│       └── risk_engine.py      # Scikit-learn inference & multi-factor risk engine
 ├── tests/                   # Automated pytest suite
 │   ├── __init__.py
 │   ├── test_api.py          # Route tests (root, health, locations)
 │   ├── test_traffic.py      # TomTom flow, incident matching, and overview tests
-│   └── test_weather.py      # Open-Meteo weather integration and caching tests
+│   ├── test_weather.py      # Open-Meteo weather integration and caching tests
+│   └── test_risk.py         # Risk prediction engine and ML fallback tests
 ├── .env.example             # Environment configuration template
 ├── requirements.txt         # Production and test dependencies
 └── README.md                # Backend documentation

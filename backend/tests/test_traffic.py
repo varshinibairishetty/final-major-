@@ -315,6 +315,51 @@ async def test_traffic_overview_endpoint():
             assert first_loc["risk_assessment"]["model_status"] == "ml_model_active"
 
 
+@pytest.mark.asyncio
+async def test_traffic_overview_provider_failure_resilience():
+    """Verify that failure of one provider (e.g. TomTom failure) does not crash the overview endpoint."""
+    mock_weather = {
+        "latitude": 17.44,
+        "longitude": 78.35,
+        "current": {
+            "time": "2026-10-29T18:45",
+            "temperature_2m": 26.0,
+            "relative_humidity_2m": 65,
+            "precipitation": 0.0,
+            "weather_code": 1,
+            "wind_speed_10m": 8.0,
+        },
+    }
+
+    async def mock_handler(request: httpx.Request):
+        url_str = str(request.url)
+        if "open-meteo" in url_str:
+            return httpx.Response(200, json=mock_weather, request=request)
+        elif "flowSegmentData" in url_str:
+            # Simulate TomTom flow outage (HTTP 500)
+            return httpx.Response(500, request=request)
+        elif "incidentDetails" in url_str:
+            # Simulate TomTom incidents timeout
+            raise httpx.TimeoutException("TomTom incidents timed out")
+        return httpx.Response(404, request=request)
+
+    transport = httpx.MockTransport(mock_handler)
+
+    with patch.object(settings, "TOMTOM_API_KEY", "mock_key"):
+        with patch("httpx.AsyncClient", return_value=httpx.AsyncClient(transport=transport)):
+            response = client.get("/api/v1/traffic-overview")
+            assert response.status_code == 200
+            data = response.json()
+
+            assert data["total_locations"] == 5
+            # Entire city overview survived provider failures gracefully
+            first_loc = data["locations"][0]
+            assert first_loc["weather"]["status"] == "success"
+            assert first_loc["traffic_flow"]["status"] == "unavailable"
+            assert first_loc["incidents"]["status"] == "unavailable"
+            assert first_loc["overall_status"] == "partially_degraded"
+
+
 def test_invalid_location_404_for_all_endpoints():
     """Verify that all location-specific endpoints return 404 for unknown location ID."""
     r_traffic = client.get("/api/v1/locations/unknown-location/traffic")

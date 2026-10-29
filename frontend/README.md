@@ -13,8 +13,8 @@ frontend/
 │   │   ├── Header.tsx              # Top bar with service status badges and refresh controls
 │   │   ├── SummaryCards.tsx        # High-level aggregate metric counters
 │   │   ├── MapView.tsx             # Interactive Leaflet map with custom status markers
-│   │   ├── LocationCard.tsx        # Corridor card showing speed, weather, and incidents
-│   │   └── LocationDetailModal.tsx # Drill-down tabbed modal (flow, incidents, weather)
+│   │   ├── LocationCard.tsx        # Corridor card showing speed, weather, incidents, and predicted risk
+│   │   └── LocationDetailModal.tsx # Drill-down tabbed modal (AI Risk Model, traffic flow, incidents, weather)
 │   ├── services/
 │   │   └── api.ts                  # Reusable API client connecting to FastAPI backend
 │   ├── types/
