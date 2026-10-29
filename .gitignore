@@ -48,6 +48,7 @@ pnpm-debug.log*
 dist/
 dist-ssr/
 *.local
+*.tsbuildinfo
 
 # Data files (do not commit raw historical datasets without approval)
 data/historical/*

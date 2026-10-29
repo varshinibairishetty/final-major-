@@ -57,32 +57,34 @@ Phase 0 ──► Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 
 
 ---
 
-### Phase 2: Backend Endpoints, Data Normalization & Provisional Risk Engine
-- [ ] Define standardized Pydantic domain models in `backend/app/schemas/`:
-  - `TrafficMetrics`: speed, free-flow speed, delay, congestion index.
-  - `Incident`: category, severity, description, coordinates, delay impact.
-  - `WeatherMetrics`: rain intensity, visibility, road surface hazard condition.
-  - `LocationRiskResponse`: aggregated metrics, risk score, risk level, data freshness timestamp.
-- [ ] Build the provisional heuristic risk estimation engine:
-  - Calculate congestion index: $1 - (\text{speed} / \text{free\_flow\_speed})$.
-  - Factor in weather hazard level (rain multiplier, low visibility penalties).
-  - Factor in time-of-day risk (peak office rush vs. off-peak vs. night).
-  - Output normalized risk score ($0.0 - 100.0$) and categorical label (`LOW`, `MODERATE`, `HIGH`, `CRITICAL`).
-- [ ] Expose REST endpoints in `backend/app/api/routes/`:
-  - `GET /api/v1/locations`: List all monitored Hyderabad locations.
-  - `GET /api/v1/locations/{id}/traffic`: Latest traffic flow and incidents.
-  - `GET /api/v1/locations/{id}/weather`: Current weather conditions.
-  - `GET /api/v1/locations/{id}/risk`: Integrated accident risk score with breakdown.
-  - `GET /api/v1/dashboard/summary`: Aggregated overview for all locations.
-- [ ] Write integration tests for API endpoints.
+### Phase 3: Frontend Dashboard and Interactive Map (Current)
+- [x] Initialize Node.js dependencies (`react`, `react-dom`, `leaflet`, `react-leaflet`, `lucide-react`, `typescript`, `vite`).
+- [x] Configure Leaflet interactive map centered on Hyderabad coordinates (`17.445° N, 78.385° E`) with custom status pins.
+- [x] Create API service layer in `frontend/src/services/api.ts` with typed responses matching backend schemas.
+- [x] Add `frontend/.env.example` with local backend base URL template.
+- [x] Build dashboard UI components:
+  - **Header:** Project title, Hyderabad label, connection status for FastAPI, Open-Meteo, and TomTom, plus refresh button.
+  - **SummaryCards:** Monitored locations count, live traffic availability, reported road incidents, and attention-required count.
+  - **MapView:** Interactive Leaflet map with OpenStreetMap tiles, custom speed-coded markers, popups, and tile fallback.
+  - **LocationCard:** Individual cards with speed, weather, incidents, congestion meters, and Phase 4 risk notices.
+  - **LocationDetailModal:** Tabbed deep-dive modal for traffic flow, provider incidents, and atmospheric weather.
+- [x] Full production build verified with zero TypeScript compiler errors.
 
 ---
 
-### Phase 3: Frontend Dashboard and Interactive Map
-- [ ] Initialize Node.js dependencies (`react`, `react-dom`, `leaflet`, `react-leaflet`, `tailwindcss`, `lucide-react`).
-- [ ] Configure Leaflet map view centered on Hyderabad coordinates (`17.3850° N, 78.4867° E`).
-- [ ] Create API service layer in `frontend/src/services/` with typed responses corresponding to backend schemas.
-- [ ] Build dashboard UI components:
+### Phase 4: Provisional Risk Scoring & Historical ML Model
+- [ ] Define standardized risk models in `backend/app/schemas/`:
+  - `RiskScore`: numerical score (0-100), categorical label (LOW, MODERATE, HIGH, CRITICAL), and factor breakdown.
+- [ ] Build the provisional heuristic risk estimation engine:
+  - Congestion factor: $1 - (\text{speed} / \text{free\_flow\_speed})$.
+  - Weather hazard factors: rain multiplier, visibility penalties.
+  - Temporal factors: peak office rush vs. off-peak vs. night.
+- [ ] Ingest historical Hyderabad accident records into `data/historical/`.
+- [ ] Train and evaluate supervised ML model (e.g. scikit-learn / XGBoost) and integrate model inference with heuristic fallback.
+
+---
+
+### Phase 5: End-to-End Testing, Hardening and Deployment Preparation
   - **Map Component:** Interactive markers representing monitored locations, color-coded by real-time risk level.
   - **Incident Markers / Overlays:** Highlighting verified provider incidents.
   - **Location Detail Drawer / Card:** Showing current vs. free-flow speeds, congestion ratio, weather severity, and risk breakdown.

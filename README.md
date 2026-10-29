@@ -120,26 +120,23 @@ smart-traffic-ai/
   - Establish directory structure, baseline documentation, ADRs, security boundaries, and project guidelines.
 - [x] **Phase 1: Environment Setup and Minimal Working Backend**
   - Configure Python virtual environment (`.venv`), install core dependencies, implement `Settings` config with secret safety, authoritative Hyderabad location registry (`data/locations/hyderabad_hotspots.json`), `GET /`, `GET /api/v1/health`, `GET /api/v1/locations` endpoints, and automated tests.
-- [x] **Phase 2: Live Traffic & Weather Integration (TomTom & Open-Meteo) (Current)**
+- [x] **Phase 2: Live Traffic & Weather Integration (TomTom & Open-Meteo)**
   - Implement external HTTP API clients for Open-Meteo current weather and TomTom Traffic Flow & Incidents with timeout resilience (5s), in-memory TTL caching, geographic incident matching (Haversine 3km), distinct accident categorization, concurrency via `asyncio.gather`, and endpoints (`/weather`, `/traffic`, `/incidents`, `/traffic-overview`).
-- [ ] **Phase 3: Normalization, Incident Processing & Provisional Risk Engine**
-  - Synthesize external telemetry into unified risk schemas, calculate congestion metrics, and build heuristic risk scoring.
-- [ ] **Phase 4: Frontend Dashboard & Geospatial Visualization**
-  - Develop React + Leaflet map view, live risk badges, incident timeline, and freshness indicators.
-- [ ] **Phase 5: Historical Accident Data & ML Risk Model**
-  - Ingest historical accident data, perform feature engineering, train ML models (scikit-learn / XGBoost), and compare with heuristic baseline.
-- [ ] **Phase 6: End-to-End Validation, Testing & Hardening**
+- [x] **Phase 3: Frontend Dashboard & Geospatial Visualization (Current)**
+  - Build responsive React + TypeScript + Vite dashboard with interactive Leaflet map, corridor cards, drill-down modal, summary counters, live provider status indicators, and honest "Prediction not available yet (Phase 4)" indicators.
+- [ ] **Phase 4: Provisional Risk Scoring & Historical ML Model**
+  - Implement explainable heuristic baseline risk engine and train supervised ML model (scikit-learn / XGBoost) on historical accident records.
+- [ ] **Phase 5: End-to-End Validation, Testing & Hardening**
   - Comprehensive automated tests, error resilience, fallback handling, and deployment readiness.
 
 ---
 
 ## 7. Current Implementation Status
 
-> **Status as of Phase 2:**
-> - Full live traffic and weather API integration is active.
-> - Open-Meteo weather service fetches real-time atmospheric measurements.
-> - TomTom traffic flow service retrieves real-time speed, free-flow speed, travel times, and congestion ratios.
-> - TomTom incidents service fetches provider-reported road hazards within 3km of each junction, strictly distinguishing accidents from general congestion.
-> - In-memory TTL caching ensures API quota efficiency.
-> - City-wide `/api/v1/traffic-overview` concurrently queries all monitored locations.
-> - Automated test suite with 20 offline unit and integration tests passing at 100%.
+> **Status as of Phase 3:**
+> - Interactive React + TypeScript + Vite dashboard is fully functional and built.
+> - Leaflet map renders configured Hyderabad locations with speed/status color-coded pins.
+> - Reusable `api` client connects to backend `/api/v1` endpoints with loading and error states.
+> - Location cards and detailed drill-down modal display traffic flow, reported incidents, and weather telemetry.
+> - Missing API keys, network errors, and unpredicted risk states are honestly reported without data hallucination.
+> - Backend test suite (20 tests) and frontend production build pass with 100% success.
