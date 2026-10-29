@@ -166,34 +166,64 @@ export const MapView: React.FC<MapViewProps> = ({
                 }}
               >
                 <Popup>
-                  <div style={{ minWidth: '180px', padding: '0.2rem' }}>
-                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 0.3rem 0', color: '#0f172a' }}>
+                  <div style={{ minWidth: '220px', padding: '0.2rem' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.2rem 0', color: '#0f172a' }}>
                       {loc.location_name}
                     </h3>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                      {loc.area_type || 'Monitored Junction'}
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                      {loc.area_type || 'Monitored Junction'} &bull; {loc.latitude.toFixed(4)}°N, {loc.longitude.toFixed(4)}°E
                     </div>
 
-                    <div style={{ fontSize: '0.8rem', lineHeight: '1.4', marginBottom: '0.5rem' }}>
-                      <div>
+                    <div style={{ fontSize: '0.78rem', lineHeight: '1.45', marginBottom: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <div style={{ background: '#f8fafc', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
+                        <strong>Traffic Speed:</strong>{' '}
+                        {flow.status === 'success' && flow.current_speed_kmh !== null
+                          ? `${flow.current_speed_kmh} km/h (${Math.round((flow.congestion_ratio || 0) * 100)}% congestion)`
+                          : flow.status === 'unconfigured'
+                          ? 'TomTom Unconfigured'
+                          : 'Unavailable'}
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
                         <strong>Weather:</strong>{' '}
                         {weather.temperature_c !== null && weather.temperature_c !== undefined
                           ? `${weather.temperature_c}°C, ${weather.weather_description}`
                           : weather.weather_description}
                       </div>
-                      <div>
-                        <strong>Traffic Flow:</strong>{' '}
-                        {flow.status === 'success' && flow.current_speed_kmh !== null
-                          ? `${flow.current_speed_kmh} km/h (Free: ${flow.free_flow_speed_kmh} km/h)`
-                          : flow.status === 'unconfigured'
-                          ? 'TomTom Unconfigured'
+                      <div style={{ background: '#f8fafc', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
+                        <strong>Reported Incidents:</strong>{' '}
+                        {inc.status === 'success'
+                          ? `${inc.incident_count || 0} provider events`
+                          : inc.status === 'unconfigured'
+                          ? 'Unconfigured'
                           : 'Unavailable'}
                       </div>
-                      <div>
-                        <strong>Reported Incidents:</strong>{' '}
-                        {inc.incident_count !== null && inc.incident_count !== undefined
-                          ? inc.incident_count
-                          : 'Unknown'}
+                      <div
+                        style={{
+                          background:
+                            loc.risk_assessment?.risk_level === 'CRITICAL' || loc.risk_assessment?.risk_level === 'HIGH'
+                              ? '#fef2f2'
+                              : loc.risk_assessment?.risk_level === 'MODERATE'
+                              ? '#fef3c7'
+                              : loc.risk_assessment?.risk_level === 'LOW'
+                              ? '#f0fdf4'
+                              : '#f8fafc',
+                          padding: '0.35rem 0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid currentColor',
+                          color:
+                            loc.risk_assessment?.risk_level === 'CRITICAL' || loc.risk_assessment?.risk_level === 'HIGH'
+                              ? '#991b1b'
+                              : loc.risk_assessment?.risk_level === 'MODERATE'
+                              ? '#92400e'
+                              : loc.risk_assessment?.risk_level === 'LOW'
+                              ? '#166534'
+                              : '#64748b',
+                        }}
+                      >
+                        <strong>Predicted Risk:</strong>{' '}
+                        {loc.risk_assessment && loc.risk_assessment.status === 'success' && loc.risk_assessment.risk_score !== null
+                          ? `${loc.risk_assessment.risk_level} (${loc.risk_assessment.risk_score}/100)`
+                          : 'Unavailable'}
                       </div>
                     </div>
 
@@ -204,7 +234,7 @@ export const MapView: React.FC<MapViewProps> = ({
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        padding: '0.3rem 0.6rem',
+                        padding: '0.35rem 0.6rem',
                         fontSize: '0.75rem',
                         fontWeight: 600,
                         width: '100%',
@@ -212,9 +242,10 @@ export const MapView: React.FC<MapViewProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '0.3rem',
+                        cursor: 'pointer',
                       }}
                     >
-                      <span>View Full Details</span>
+                      <span>Inspect Telemetry & AI Model</span>
                       <ArrowUpRight size={13} />
                     </button>
                   </div>
@@ -237,9 +268,9 @@ export const MapView: React.FC<MapViewProps> = ({
           gap: '0.4rem',
         }}
       >
-        <Info size={14} color="#64748b" />
+        <Info size={14} color="#64748b" style={{ flexShrink: 0 }} />
         <span>
-          Note: Base road network represents OpenStreetMap geometry. Numerical markers indicate current observed speed (km/h) at the configured junction coordinates.
+          Monitored corridors: 5 configured Hyderabad junctions (Gachibowli, Hitech City, Madhapur, Kukatpally, Jubilee Hills). Does not monitor entire city grid or residential streets. Numerical markers indicate observed speed (km/h).
         </span>
       </div>
     </div>

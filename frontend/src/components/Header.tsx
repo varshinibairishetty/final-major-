@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Activity, CloudSun, Navigation, MapPin } from 'lucide-react';
+import { RefreshCw, Activity, CloudSun, Navigation, MapPin, BrainCircuit } from 'lucide-react';
 
 interface HeaderProps {
   backendHealthy: boolean;
@@ -7,6 +7,7 @@ interface HeaderProps {
   isRefreshing: boolean;
   onRefresh: () => void;
   lastUpdated: string | null;
+  riskModelStatus?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   isRefreshing,
   onRefresh,
   lastUpdated,
+  riskModelStatus = 'active',
 }) => {
   const tomtomStatus = sourcesStatus.tomtom_traffic_flow || 'unconfigured';
   const openMeteoStatus = sourcesStatus.open_meteo || 'unknown';
@@ -135,6 +137,30 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Navigation size={14} />
             <span>TomTom: {tomtomStatus === 'configured' ? 'Configured' : 'Unconfigured'}</span>
+          </div>
+
+          {/* AI Risk Model Status Badge */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '9999px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              background: riskModelStatus === 'active' ? '#f5f3ff' : '#fef2f2',
+              color: riskModelStatus === 'active' ? '#6d28d9' : '#991b1b',
+              border: `1px solid ${riskModelStatus === 'active' ? '#ddd6fe' : '#fecaca'}`,
+            }}
+            title={
+              riskModelStatus === 'active'
+                ? 'RandomForest Accident Severity Model (v1.0) active in backend'
+                : 'Risk prediction model offline or unavailable'
+            }
+          >
+            <BrainCircuit size={14} />
+            <span>AI Risk Model: {riskModelStatus === 'active' ? 'Active (v1.0)' : 'Unavailable'}</span>
           </div>
 
           {/* Refresh Button */}

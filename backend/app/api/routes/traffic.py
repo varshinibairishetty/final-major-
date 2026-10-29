@@ -13,6 +13,7 @@ from app.schemas.traffic import (
     TrafficOverviewResponse,
 )
 from app.services.location_service import LocationService
+from app.services.risk_engine import RiskPredictionEngine
 from app.services.tomtom_service import TomTomTrafficService
 from app.services.weather_service import OpenMeteoWeatherService
 
@@ -112,6 +113,13 @@ async def get_traffic_overview(
                 weather_task, flow_task, incidents_task
             )
 
+            # Evaluate accident risk prediction using live telemetry
+            risk_assessment = await RiskPredictionEngine.evaluate_location_risk(
+                location=loc,
+                weather=weather,
+                flow=flow,
+            )
+
             # Determine composite health status
             statuses = [weather.status, flow.status, incidents.status]
             if all(s == "success" for s in statuses):
@@ -130,6 +138,7 @@ async def get_traffic_overview(
                 weather=weather,
                 traffic_flow=flow,
                 incidents=incidents,
+                risk_assessment=risk_assessment,
                 overall_status=overall,
             )
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Gauge, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { MapPin, Gauge, AlertTriangle, BrainCircuit } from 'lucide-react';
 import { LocationOverview } from '../types';
 
 interface SummaryCardsProps {
@@ -22,25 +22,24 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ locations }) => {
     return acc + accCount;
   }, 0);
 
-  const locationsNeedingAttention = locations.filter((loc) => {
-    const flow = loc.traffic_flow;
-    const inc = loc.incidents;
-    const highCongestion = (flow.congestion_ratio || 0) >= 0.35;
-    const roadClosed = flow.road_closure;
-    const hasAccident = inc.incidents.some((i) => i.is_confirmed_accident);
-    return highCongestion || roadClosed || hasAccident;
-  }).length;
+  // Risk evaluation metrics
+  const locationsWithRisk = locations.filter(
+    (loc) => loc.risk_assessment && loc.risk_assessment.status === 'success' && loc.risk_assessment.risk_score !== null
+  );
+  const elevatedRiskLocations = locationsWithRisk.filter(
+    (loc) => loc.risk_assessment?.risk_level === 'HIGH' || loc.risk_assessment?.risk_level === 'CRITICAL'
+  ).length;
 
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
         gap: '1rem',
         marginBottom: '1.5rem',
       }}
     >
-      {/* 1. Monitored Locations */}
+      {/* 1. Monitored Corridors */}
       <div
         style={{
           background: '#ffffff',
@@ -66,7 +65,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ locations }) => {
         </div>
         <div>
           <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
-            Monitored Locations
+            Monitored Corridors
           </div>
           <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a' }}>
             {totalMonitored}
@@ -75,7 +74,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ locations }) => {
         </div>
       </div>
 
-      {/* 2. Live Flow Availability */}
+      {/* 2. Traffic Congestion & Speeds */}
       <div
         style={{
           background: '#ffffff',
@@ -101,18 +100,18 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ locations }) => {
         </div>
         <div>
           <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
-            Traffic Flow Telemetry
+            Traffic Congestion
           </div>
           <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a' }}>
             {locationsWithTraffic} / {totalMonitored}
           </div>
           <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-            {locationsWithTraffic > 0 ? 'Live speeds active' : 'Awaiting TomTom API key'}
+            {locationsWithTraffic > 0 ? 'Live speeds active (Not accidents)' : 'Awaiting TomTom API key'}
           </div>
         </div>
       </div>
 
-      {/* 3. Reported Incidents */}
+      {/* 3. Provider-Reported Incidents */}
       <div
         style={{
           background: '#ffffff',
@@ -138,18 +137,18 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ locations }) => {
         </div>
         <div>
           <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
-            Reported Road Incidents
+            Reported Incidents
           </div>
           <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a' }}>
             {totalIncidents}
           </div>
           <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-            {confirmedAccidents > 0 ? `${confirmedAccidents} verified accident(s)` : 'Provider-reported events'}
+            {confirmedAccidents > 0 ? `${confirmedAccidents} verified collision(s)` : 'TomTom external provider events'}
           </div>
         </div>
       </div>
 
-      {/* 4. Attention Required */}
+      {/* 4. Predicted Accident Risk */}
       <div
         style={{
           background: '#ffffff',
@@ -164,30 +163,32 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ locations }) => {
       >
         <div
           style={{
-            background: locationsNeedingAttention > 0 ? '#fef2f2' : '#f8fafc',
-            color: locationsNeedingAttention > 0 ? '#ef4444' : '#64748b',
+            background: elevatedRiskLocations > 0 ? '#fef2f2' : '#f5f3ff',
+            color: elevatedRiskLocations > 0 ? '#dc2626' : '#7c3aed',
             padding: '0.75rem',
             borderRadius: '8px',
             display: 'flex',
           }}
         >
-          <ShieldAlert size={22} />
+          <BrainCircuit size={22} />
         </div>
         <div>
           <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
-            Requiring Attention
+            Predicted Accident Risk
           </div>
           <div
             style={{
               fontSize: '1.4rem',
               fontWeight: 700,
-              color: locationsNeedingAttention > 0 ? '#dc2626' : '#0f172a',
+              color: elevatedRiskLocations > 0 ? '#dc2626' : '#0f172a',
             }}
           >
-            {locationsNeedingAttention}
+            {elevatedRiskLocations > 0
+              ? `${elevatedRiskLocations} Elevated`
+              : `${locationsWithRisk.length} Evaluated`}
           </div>
           <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-            {locationsNeedingAttention > 0 ? 'High congestion or hazards' : 'Normal conditions'}
+            Model estimate (Not confirmed accidents)
           </div>
         </div>
       </div>

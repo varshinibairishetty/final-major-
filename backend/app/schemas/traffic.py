@@ -2,6 +2,7 @@
 
 from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
+from app.schemas.risk import RiskAssessmentResponse
 from app.schemas.weather import WeatherData
 
 
@@ -108,6 +109,7 @@ class LocationOverview(BaseModel):
     weather: WeatherData
     traffic_flow: TrafficFlowData
     incidents: LocationIncidentsResponse
+    risk_assessment: Optional[RiskAssessmentResponse] = None
     overall_status: str = Field(
         default="healthy",
         description="Aggregated health: 'healthy', 'partially_degraded', 'unavailable', or 'unconfigured'",

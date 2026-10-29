@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   BrainCircuit,
   Activity,
+  RefreshCw,
 } from 'lucide-react';
 
 interface LocationDetailModalProps {
@@ -29,16 +30,33 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
 
   useEffect(() => {
     if (location) {
-      setIsRiskLoading(true);
-      api
-        .getLocationRisk(location.location_id)
-        .then((res) => setRiskData(res))
-        .catch(() => setRiskData(null))
-        .finally(() => setIsRiskLoading(false));
+      if (location.risk_assessment) {
+        setRiskData(location.risk_assessment);
+      } else {
+        setIsRiskLoading(true);
+        api
+          .getLocationRisk(location.location_id)
+          .then((res) => setRiskData(res))
+          .catch(() => setRiskData(null))
+          .finally(() => setIsRiskLoading(false));
+      }
     } else {
       setRiskData(null);
     }
   }, [location]);
+
+  const handleRefreshRisk = async () => {
+    if (!location) return;
+    setIsRiskLoading(true);
+    try {
+      const res = await api.getLocationRisk(location.location_id, true);
+      setRiskData(res);
+    } catch {
+      // keep existing state
+    } finally {
+      setIsRiskLoading(false);
+    }
+  };
 
   if (!location) return null;
 
@@ -224,12 +242,45 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
           {/* TAB 0: AI RISK ASSESSMENT */}
           {activeTab === 'risk' && (
             <div>
-              {isRiskLoading ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-                  <Activity size={28} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 0.5rem auto', color: '#2563eb' }} />
-                  <div>Evaluating live multi-modal risk pipeline...</div>
+              {/* Concept Clarification Banner */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '0.75rem 1rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.75rem',
+                  color: '#475569',
+                  lineHeight: '1.5',
+                }}
+              >
+                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Info size={14} color="#2563eb" />
+                  <span>Domain Concepts & Terminology:</span>
                 </div>
-              ) : riskData ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+                  <div>
+                    <strong style={{ color: '#0f172a' }}>Predicted Accident Risk:</strong> Statistical model estimate (0–100), not a confirmed future accident.
+                  </div>
+                  <div>
+                    <strong style={{ color: '#0f172a' }}>Traffic Congestion:</strong> Observed speed deficit ratio, not an accident.
+                  </div>
+                  <div>
+                    <strong style={{ color: '#0f172a' }}>Reported Incident:</strong> Verified external event from provider (TomTom).
+                  </div>
+                </div>
+              </div>
+
+              {isRiskLoading ? (
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748b' }}>
+                  <Activity size={32} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 0.75rem auto', color: '#2563eb' }} />
+                  <div style={{ fontWeight: 600, color: '#1e293b' }}>Evaluating Live Accident Risk Model...</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                    Synthesizing Open-Meteo weather, TomTom flow, and historical RandomForest pipeline
+                  </div>
+                </div>
+              ) : riskData && riskData.status === 'success' && riskData.risk_score !== null && riskData.risk_score !== undefined ? (
                 <div>
                   {/* Risk Score & Level Box */}
                   <div
@@ -250,17 +301,20 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
                         Estimated Accident Risk Index
                       </div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginTop: '0.2rem' }}>
-                        <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#0f172a' }}>
+                        <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a' }}>
                           {riskData.risk_score}
                         </span>
-                        <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>/ 100</span>
+                        <span style={{ fontSize: '0.95rem', color: '#94a3b8' }}>/ 100</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.2rem' }}>
+                        Evaluated: {new Date(riskData.timestamp).toLocaleTimeString()}
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
                       <span
                         style={{
-                          padding: '0.35rem 0.85rem',
+                          padding: '0.4rem 0.95rem',
                           borderRadius: '9999px',
                           fontSize: '0.85rem',
                           fontWeight: 700,
@@ -285,72 +339,149 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
                       >
                         {riskData.risk_level} RISK
                       </span>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.4rem' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.5rem' }}>
                         Pipeline: <strong>{riskData.model_status}</strong>
                       </div>
+                      <button
+                        onClick={handleRefreshRisk}
+                        disabled={isRiskLoading}
+                        style={{
+                          marginTop: '0.4rem',
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          padding: '0.25rem 0.6rem',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          color: '#334155',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <RefreshCw size={12} />
+                        <span>Re-evaluate</span>
+                      </button>
                     </div>
                   </div>
 
-                  {/* ML Severity Prediction */}
+                  {/* ML Severity Propensity */}
                   <div
                     style={{
                       background: '#f1f5f9',
-                      padding: '0.85rem 1rem',
+                      padding: '0.9rem 1rem',
                       borderRadius: '8px',
                       marginBottom: '1rem',
                       fontSize: '0.82rem',
+                      border: '1px solid #e2e8f0',
                     }}
                   >
-                    <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: '0.2rem' }}>
-                      ML Model Severity Propensity: <span style={{ color: '#2563eb' }}>{riskData.predicted_severity_class}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                      <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                        ML Severity Propensity: <span style={{ color: '#2563eb' }}>{riskData.predicted_severity_class}</span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                        Model: {riskData.model_version}
+                      </span>
                     </div>
-                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>
-                      Calibrated Severe Injury Probability: <strong>{Math.round(riskData.severity_probability * 100)}%</strong> (Model: {riskData.model_version})
+                    <div style={{ color: '#64748b', fontSize: '0.75rem', lineHeight: '1.4' }}>
+                      Relative propensity estimated by RandomForest classifier trained on historical crash features.
+                      {riskData.severity_probability !== null && riskData.severity_probability !== undefined && (
+                        <span> Propensity weight: <strong>{Math.round(riskData.severity_probability * 100)}%</strong>.</span>
+                      )}
+                      <em> Note: This is an estimated relative propensity given an incident occurs, NOT a probability of an accident occurring at this moment.</em>
                     </div>
                   </div>
 
                   {/* Factor Contribution Progress Bars */}
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.6rem' }}>
-                    Risk Factor Breakdown:
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.78rem' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
-                        <span>Congestion & Speed Deficit Weight</span>
-                        <span>{Math.round(riskData.contributing_factors.congestion_factor * 100)}%</span>
-                      </div>
-                      <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${riskData.contributing_factors.congestion_factor * 100}%`, background: '#2563eb' }} />
+                  {riskData.contributing_factors && (
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.6rem' }}>
+                        Risk Factor Breakdown:
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.78rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
+                            <span>Traffic Congestion & Speed Deficit Weight</span>
+                            <span>{Math.round(riskData.contributing_factors.congestion_factor * 100)}%</span>
+                          </div>
+                          <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${riskData.contributing_factors.congestion_factor * 100}%`, background: '#2563eb' }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
+                            <span>Atmospheric Weather Hazard Weight</span>
+                            <span>{Math.round(riskData.contributing_factors.weather_factor * 100)}%</span>
+                          </div>
+                          <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${riskData.contributing_factors.weather_factor * 100}%`, background: '#0284c7' }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
+                            <span>Temporal Hazard (Rush Hour / Night)</span>
+                            <span>{Math.round(riskData.contributing_factors.temporal_factor * 100)}%</span>
+                          </div>
+                          <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${riskData.contributing_factors.temporal_factor * 100}%`, background: '#d97706' }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
+                            <span>Roadway & Junction Geometry</span>
+                            <span>{Math.round(riskData.contributing_factors.road_geometry_factor * 100)}%</span>
+                          </div>
+                          <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${riskData.contributing_factors.road_geometry_factor * 100}%`, background: '#64748b' }} />
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
-                        <span>Atmospheric Weather Hazard Weight</span>
-                        <span>{Math.round(riskData.contributing_factors.weather_factor * 100)}%</span>
+                  {/* Observed Inputs Audit Grid */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>
+                      Observed Inputs Fed to Pipeline:
+                    </h4>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                        gap: '0.5rem',
+                        fontSize: '0.74rem',
+                      }}
+                    >
+                      <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ color: '#64748b' }}>Speed:</span>{' '}
+                        <strong>{riskData.observed_inputs.current_speed_kmh ?? 'Unconfigured'} km/h</strong>
                       </div>
-                      <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${riskData.contributing_factors.weather_factor * 100}%`, background: '#0284c7' }} />
+                      <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ color: '#64748b' }}>Free Flow:</span>{' '}
+                        <strong>{riskData.observed_inputs.free_flow_speed_kmh ?? 'N/A'} km/h</strong>
                       </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
-                        <span>Temporal Hazard (Rush Hour / Night)</span>
-                        <span>{Math.round(riskData.contributing_factors.temporal_factor * 100)}%</span>
+                      <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ color: '#64748b' }}>Weather:</span>{' '}
+                        <strong>{riskData.observed_inputs.weather_description}</strong>
                       </div>
-                      <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${riskData.contributing_factors.temporal_factor * 100}%`, background: '#d97706' }} />
+                      <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ color: '#64748b' }}>Rain:</span>{' '}
+                        <strong>{riskData.observed_inputs.rain_mm ?? 0} mm</strong>
                       </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.2rem' }}>
-                        <span>Roadway & Junction Geometry</span>
-                        <span>{Math.round(riskData.contributing_factors.road_geometry_factor * 100)}%</span>
+                      <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ color: '#64748b' }}>Road Type:</span>{' '}
+                        <strong style={{ textTransform: 'capitalize' }}>{riskData.observed_inputs.road_type}</strong>
                       </div>
-                      <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${riskData.contributing_factors.road_geometry_factor * 100}%`, background: '#64748b' }} />
+                      <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ color: '#64748b' }}>Time / Peak:</span>{' '}
+                        <strong>
+                          {riskData.observed_inputs.hour_of_day}:00 ({riskData.observed_inputs.is_rush_hour ? 'Rush Hour' : 'Off-Peak'})
+                        </strong>
                       </div>
                     </div>
                   </div>
@@ -358,25 +489,59 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
                   {/* Mandatory Integrity Note */}
                   <div
                     style={{
-                      background: '#f8fafc',
+                      background: '#fffbeb',
                       padding: '0.75rem',
                       borderRadius: '6px',
                       fontSize: '0.72rem',
-                      color: '#64748b',
+                      color: '#92400e',
                       display: 'flex',
                       gap: '0.5rem',
-                      marginTop: '1.25rem',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #fde68a',
                     }}
                   >
-                    <Info size={16} style={{ flexShrink: 0 }} />
+                    <Info size={16} color="#d97706" style={{ flexShrink: 0 }} />
                     <span>{riskData.limitations_note}</span>
                   </div>
                 </div>
               ) : (
-                <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '8px' }}>
-                  <ShieldAlert size={32} color="#94a3b8" style={{ margin: '0 auto 0.5rem auto' }} />
-                  <div>Risk assessment service is currently unavailable.</div>
+                /* Honest Unavailable Prediction State */
+                <div
+                  style={{
+                    padding: '2.5rem 1.5rem',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px dashed #cbd5e1',
+                  }}
+                >
+                  <ShieldAlert size={36} color="#94a3b8" style={{ margin: '0 auto 0.75rem auto' }} />
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: '0 0 0.3rem 0' }}>
+                    Accident Risk Prediction Unavailable
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '440px', margin: '0 auto 1rem auto' }}>
+                    {riskData?.error_message ||
+                      'Prediction is suspended because live telemetry or trained model artifacts could not be verified. Values are never fabricated to force an estimate.'}
+                  </p>
+                  <button
+                    onClick={handleRefreshRisk}
+                    disabled={isRiskLoading}
+                    style={{
+                      background: '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '0.45rem 1rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <RefreshCw size={14} />
+                    <span>Retry Evaluation</span>
+                  </button>
                 </div>
               )}
             </div>

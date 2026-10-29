@@ -99,6 +99,7 @@ async def test_risk_endpoint_with_active_ml_model():
 
         assert data["location_id"] == "hyd-gachibowli"
         assert "Gachibowli" in data["location_name"]
+        assert data["status"] == "success"
         assert 0.0 <= data["risk_score"] <= 100.0
         assert data["risk_level"] in ["LOW", "MODERATE", "HIGH", "CRITICAL"]
         assert data["predicted_severity_class"] in ["Minor", "Severe/Fatal"]
@@ -117,17 +118,36 @@ async def test_risk_endpoint_with_active_ml_model():
 
 
 @pytest.mark.asyncio
-async def test_risk_endpoint_fallback_to_heuristic():
-    """Verify graceful fallback to heuristic baseline when model artifact cannot be loaded."""
+async def test_risk_endpoint_unavailable_model():
+    """Verify that when no valid model artifact is available, the endpoint returns an honest unavailable state."""
     with patch.object(RiskPredictionEngine, "load_model", return_value=None):
         response = client.get("/api/v1/locations/hyd-hitech-city/risk")
         assert response.status_code == 200
         data = response.json()
 
         assert data["location_id"] == "hyd-hitech-city"
-        assert 0.0 <= data["risk_score"] <= 100.0
-        assert data["model_status"] == "heuristic_baseline"
-        assert "Severe/Fatal" in data["predicted_severity_class"] or "Minor" in data["predicted_severity_class"]
+        assert data["status"] == "unavailable"
+        assert data["risk_score"] is None
+        assert data["risk_level"] == "UNAVAILABLE"
+        assert data["model_status"] == "model_unavailable"
+        assert "unavailable" in data["error_message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_risk_endpoint_weather_provider_failure():
+    """Verify that when live weather telemetry is unavailable, prediction returns an honest unavailable state."""
+    req = httpx.Request("GET", "https://api.open-meteo.com/v1/forecast")
+    with patch.object(httpx.AsyncClient, "get", return_value=httpx.Response(500, request=req)):
+        response = client.get("/api/v1/locations/hyd-madhapur/risk?force_refresh=true")
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["location_id"] == "hyd-madhapur"
+        assert data["status"] == "unavailable"
+        assert data["risk_score"] is None
+        assert data["risk_level"] == "UNAVAILABLE"
+        assert data["model_status"] == "telemetry_unavailable"
+        assert "weather telemetry is unavailable" in data["error_message"].lower()
 
 
 def test_risk_endpoint_invalid_location_404():

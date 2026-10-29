@@ -56,6 +56,7 @@ export const App: React.FC = () => {
 
   const selectedLocation = locations.find((l) => l.location_id === selectedLocationId) || null;
   const isTomTomUnconfigured = sourcesStatus.tomtom_traffic_flow === 'unconfigured';
+  const isRiskModelActive = locations.some((l) => l.risk_assessment && l.risk_assessment.status === 'success');
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -66,6 +67,7 @@ export const App: React.FC = () => {
         isRefreshing={isRefreshing}
         onRefresh={() => loadData(true)}
         lastUpdated={lastUpdated}
+        riskModelStatus={isRiskModelActive ? 'active' : 'unavailable'}
       />
 
       <main style={{ flex: 1, padding: '1.5rem 2rem', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
@@ -271,7 +273,7 @@ export const App: React.FC = () => {
           marginTop: 'auto',
         }}
       >
-        Multimodal AI-Based Smart Traffic Management & Accident Prediction System &bull; Hyderabad Telemetry &bull; Phase 3 Frontend
+        Multimodal AI-Based Smart Traffic Management & Accident Prediction System &bull; Hyderabad Telemetry &bull; Phase 5 Integrated Dashboard
       </footer>
     </div>
   );

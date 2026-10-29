@@ -13,6 +13,8 @@ from app.schemas.risk import (
     RiskAssessmentResponse,
     RiskFactors,
 )
+from app.schemas.traffic import TrafficFlowData
+from app.schemas.weather import WeatherData
 from app.services.tomtom_service import TomTomTrafficService
 from app.services.weather_service import OpenMeteoWeatherService
 
@@ -47,7 +49,7 @@ class RiskPredictionEngine:
                 except Exception as exc:
                     logger.error("Failed to load model from %s: %s", path, str(exc))
 
-        logger.warning("No pre-trained model artifact found. Risk engine will operate in explainable heuristic baseline mode.")
+        logger.warning("No pre-trained model artifact found. Risk engine will signal unavailable status.")
         cls._model = None
         cls._model_loaded = False
         return None
@@ -95,9 +97,16 @@ class RiskPredictionEngine:
     async def evaluate_location_risk(
         cls,
         location: Location,
+        weather: Optional[WeatherData] = None,
+        flow: Optional[TrafficFlowData] = None,
         force_refresh: bool = False,
     ) -> RiskAssessmentResponse:
-        """Computes comprehensive risk score and severity prediction for a location."""
+        """Computes comprehensive risk score and severity prediction for a location.
+
+        Synthesizes empirical Open-Meteo weather, TomTom traffic flow, and the trained
+        RandomForest classifier. If inputs are missing or model is unavailable, returns
+        an explicit typed unavailable state without inventing data.
+        """
         now = datetime.now(timezone.utc)
         now_iso = now.isoformat()
         hour = now.hour
@@ -106,77 +115,157 @@ class RiskPredictionEngine:
         is_night = int(hour >= 22 or hour <= 5)
         is_rush_hour = int((8 <= hour <= 11) or (17 <= hour <= 21))
 
-        # 1. Fetch live telemetry concurrently
-        weather = await OpenMeteoWeatherService.fetch_weather_for_location(location, force_refresh=force_refresh)
-        flow = await TomTomTrafficService.fetch_traffic_flow(location, force_refresh=force_refresh)
-
-        # 2. Extract standardized attributes
+        # 1. Roadway geometry and reference limits
         road_type, speed_limit = cls._extract_road_attributes(location)
+
+        # 2. Fetch live telemetry if not supplied
+        if weather is None:
+            weather = await OpenMeteoWeatherService.fetch_weather_for_location(
+                location, force_refresh=force_refresh
+            )
+        if flow is None:
+            flow = await TomTomTrafficService.fetch_traffic_flow(
+                location, force_refresh=force_refresh
+            )
+
+        # 3. Handle model availability
+        model = cls.load_model()
+        if model is None:
+            logger.warning("Risk assessment unavailable: No trained ML model artifact found for '%s'", location.id)
+            return RiskAssessmentResponse(
+                location_id=location.id,
+                location_name=location.name,
+                timestamp=now_iso,
+                risk_score=None,
+                risk_level="UNAVAILABLE",
+                predicted_severity_class=None,
+                severity_probability=None,
+                contributing_factors=None,
+                observed_inputs=ObservedTelemetryInputs(
+                    current_speed_kmh=flow.current_speed_kmh if flow else None,
+                    free_flow_speed_kmh=flow.free_flow_speed_kmh if flow else None,
+                    congestion_ratio=flow.congestion_ratio if flow else None,
+                    weather_description=weather.weather_description if weather else "Unknown",
+                    rain_mm=weather.rain_mm if weather else None,
+                    road_type=road_type,
+                    hour_of_day=hour,
+                    is_night=bool(is_night),
+                    is_rush_hour=bool(is_rush_hour),
+                ),
+                model_status="model_unavailable",
+                model_version="unavailable",
+                status="unavailable",
+                error_message="Trained accident risk model artifact is unavailable. Risk scores are not fabricated.",
+                limitations_note="Risk prediction unavailable: Valid ML model artifact not found on disk.",
+            )
+
+        # 4. Handle weather telemetry availability
+        if weather.status != "success":
+            logger.warning("Risk assessment unavailable: Weather telemetry degraded/unavailable for '%s'", location.id)
+            return RiskAssessmentResponse(
+                location_id=location.id,
+                location_name=location.name,
+                timestamp=now_iso,
+                risk_score=None,
+                risk_level="UNAVAILABLE",
+                predicted_severity_class=None,
+                severity_probability=None,
+                contributing_factors=None,
+                observed_inputs=ObservedTelemetryInputs(
+                    current_speed_kmh=flow.current_speed_kmh if flow else None,
+                    free_flow_speed_kmh=flow.free_flow_speed_kmh if flow else None,
+                    congestion_ratio=flow.congestion_ratio if flow else None,
+                    weather_description="Weather telemetry unavailable",
+                    rain_mm=None,
+                    road_type=road_type,
+                    hour_of_day=hour,
+                    is_night=bool(is_night),
+                    is_rush_hour=bool(is_rush_hour),
+                ),
+                model_status="telemetry_unavailable",
+                model_version="v1.0-randomforest-severity",
+                status="unavailable",
+                error_message="Live weather telemetry is unavailable. Predictions require verified empirical conditions.",
+                limitations_note="Risk estimation suspended: live environmental telemetry from Open-Meteo is unavailable.",
+            )
+
+        # 5. Extract empirical telemetry attributes
         rain_val = weather.rain_mm if weather.rain_mm is not None else weather.precipitation_mm
         surface_condition = cls._infer_surface_condition(weather.weather_description, rain_val)
-        traffic_density = cls._infer_traffic_density(flow.congestion_ratio, bool(is_rush_hour), bool(is_night))
 
-        # Map weather condition for model input
         weather_text = weather.weather_description.lower()
-        if "rain" in weather_text or "drizzle" in weather_text:
+        if "rain" in weather_text or "drizzle" in weather_text or "shower" in weather_text:
             model_weather = "rain"
-        elif "fog" in weather_text or "mist" in weather_text:
+        elif "fog" in weather_text or "mist" in weather_text or "haze" in weather_text:
             model_weather = "fog"
         elif "cloud" in weather_text or "overcast" in weather_text:
             model_weather = "overcast"
         else:
             model_weather = "clear"
 
-        # 3. Model Inference or Heuristic Severity Probability
-        model = cls.load_model()
-        model_status = "ml_model_active"
-
-        if model is not None:
-            try:
-                features_df = pd.DataFrame(
-                    [
-                        {
-                            "hour_of_day": hour,
-                            "day_of_week": day_of_week,
-                            "is_weekend": is_weekend,
-                            "is_night": is_night,
-                            "is_rush_hour": is_rush_hour,
-                            "speed_limit_kmh": speed_limit,
-                            "road_type": road_type,
-                            "weather_condition": model_weather,
-                            "surface_condition": surface_condition,
-                            "traffic_density": traffic_density,
-                        }
-                    ]
-                )
-                proba = model.predict_proba(features_df)
-                severity_prob = round(float(proba[0][1]), 4)
-            except Exception as exc:
-                logger.error("ML model inference failed for '%s': %s", location.id, str(exc))
-                severity_prob = 0.25
-                model_status = "heuristic_baseline"
+        # Check traffic flow availability
+        has_live_flow = flow.status == "success" and flow.congestion_ratio is not None
+        if has_live_flow:
+            traffic_density = cls._infer_traffic_density(flow.congestion_ratio, bool(is_rush_hour), bool(is_night))
+            congestion_factor = round(min(1.0, max(0.0, flow.congestion_ratio * 1.3)), 3)
         else:
-            # Explainable heuristic baseline if model file is not present
-            severity_prob = 0.20
-            if is_night:
-                severity_prob += 0.12
-            if surface_condition in ("wet", "waterlogged"):
-                severity_prob += 0.10
-            if speed_limit >= 80:
-                severity_prob += 0.08
-            severity_prob = round(min(0.85, severity_prob), 4)
-            model_status = "heuristic_baseline"
+            traffic_density = "unknown"
+            congestion_factor = 0.0
+
+        # 6. Execute ML Model Inference
+        try:
+            features_df = pd.DataFrame(
+                [
+                    {
+                        "hour_of_day": hour,
+                        "day_of_week": day_of_week,
+                        "is_weekend": is_weekend,
+                        "is_night": is_night,
+                        "is_rush_hour": is_rush_hour,
+                        "speed_limit_kmh": speed_limit,
+                        "road_type": road_type,
+                        "weather_condition": model_weather,
+                        "surface_condition": surface_condition,
+                        "traffic_density": traffic_density,
+                    }
+                ]
+            )
+            proba = model.predict_proba(features_df)
+            severity_prob = round(float(proba[0][1]), 4)
+            model_status = "ml_model_active"
+        except Exception as exc:
+            logger.error("ML model inference failed for '%s': %s", location.id, str(exc))
+            return RiskAssessmentResponse(
+                location_id=location.id,
+                location_name=location.name,
+                timestamp=now_iso,
+                risk_score=None,
+                risk_level="UNAVAILABLE",
+                predicted_severity_class=None,
+                severity_probability=None,
+                contributing_factors=None,
+                observed_inputs=ObservedTelemetryInputs(
+                    current_speed_kmh=flow.current_speed_kmh,
+                    free_flow_speed_kmh=flow.free_flow_speed_kmh,
+                    congestion_ratio=flow.congestion_ratio,
+                    weather_description=weather.weather_description,
+                    rain_mm=rain_val,
+                    road_type=road_type,
+                    hour_of_day=hour,
+                    is_night=bool(is_night),
+                    is_rush_hour=bool(is_rush_hour),
+                ),
+                model_status="inference_error",
+                model_version="v1.0-randomforest-severity",
+                status="unavailable",
+                error_message=f"Model inference error: {str(exc)}",
+                limitations_note="Model inference failed on feature vector.",
+            )
 
         predicted_class = "Severe/Fatal" if severity_prob >= 0.40 else "Minor"
 
-        # 4. Multi-factor Risk Score Calculation (0.0 to 100.0)
-        # Factor A: Congestion / Speed Deficit
-        if flow.congestion_ratio is not None:
-            congestion_factor = round(min(1.0, max(0.0, flow.congestion_ratio * 1.3)), 3)
-        else:
-            congestion_factor = 0.25  # Neutral default when flow API unconfigured
-
-        # Factor B: Weather Hazard
+        # 7. Contributing Factor Weight Calculation
+        # Factor A: Weather Hazard
         if surface_condition == "waterlogged":
             weather_factor = 0.85
         elif surface_condition == "wet":
@@ -186,7 +275,7 @@ class RiskPredictionEngine:
         else:
             weather_factor = 0.15
 
-        # Factor C: Temporal Risk
+        # Factor B: Temporal Risk
         if is_night:
             temporal_factor = 0.70
         elif is_rush_hour:
@@ -194,7 +283,7 @@ class RiskPredictionEngine:
         else:
             temporal_factor = 0.25
 
-        # Factor D: Road Geometry
+        # Factor C: Road Geometry
         if road_type == "flyover":
             road_factor = 0.60
         elif road_type == "junction":
@@ -203,12 +292,28 @@ class RiskPredictionEngine:
             road_factor = 0.30
 
         # Composite statistical risk formula (0 - 100)
-        raw_score = (
-            (severity_prob * 35.0)
-            + (congestion_factor * 25.0)
-            + (weather_factor * 25.0)
-            + (temporal_factor * 15.0)
-        )
+        if has_live_flow:
+            raw_score = (
+                (severity_prob * 35.0)
+                + (congestion_factor * 25.0)
+                + (weather_factor * 25.0)
+                + (temporal_factor * 15.0)
+            )
+            limitations_note = (
+                "Statistical risk estimate synthesized from live TomTom traffic flow, Open-Meteo weather, "
+                "and historical severity model. Never represents a confirmed accident."
+            )
+        else:
+            raw_score = (
+                (severity_prob * 45.0)
+                + (weather_factor * 35.0)
+                + (temporal_factor * 20.0)
+            )
+            limitations_note = (
+                "Statistical risk estimate derived from live Open-Meteo weather, temporal dynamics, and roadway geometry. "
+                "Traffic flow is currently unconfigured. Never represents a confirmed accident."
+            )
+
         risk_score = round(max(5.0, min(95.0, raw_score)), 1)
 
         # Categorical Tier
@@ -248,4 +353,6 @@ class RiskPredictionEngine:
             ),
             model_status=model_status,
             model_version="v1.0-randomforest-severity",
+            status="success",
+            limitations_note=limitations_note,
         )

@@ -1,6 +1,6 @@
 import React from 'react';
 import { LocationOverview } from '../types';
-import { CloudSun, Gauge, AlertTriangle, ChevronRight, Clock, ShieldCheck } from 'lucide-react';
+import { CloudSun, Gauge, AlertTriangle, ChevronRight, Clock, BrainCircuit, ShieldAlert } from 'lucide-react';
 
 interface LocationCardProps {
   location: LocationOverview;
@@ -13,11 +13,38 @@ export const LocationCard: React.FC<LocationCardProps> = ({
   isSelected,
   onSelect,
 }) => {
-  const { location_name, area_type, weather, traffic_flow, incidents } = location;
+  const { location_name, area_type, weather, traffic_flow, incidents, risk_assessment } = location;
 
   const flow = traffic_flow;
   const inc = incidents;
   const accidents = inc.incidents.filter((i) => i.is_confirmed_accident).length;
+
+  const hasValidRisk =
+    risk_assessment &&
+    risk_assessment.status === 'success' &&
+    risk_assessment.risk_score !== null &&
+    risk_assessment.risk_score !== undefined;
+
+  const riskLevel = risk_assessment?.risk_level || 'UNAVAILABLE';
+  const riskScore = risk_assessment?.risk_score;
+
+  // Risk tier color styling
+  const getRiskStyles = (level: string) => {
+    switch (level) {
+      case 'CRITICAL':
+        return { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' };
+      case 'HIGH':
+        return { bg: '#ffedd5', text: '#9a3412', border: '#fdba74' };
+      case 'MODERATE':
+        return { bg: '#fef3c7', text: '#92400e', border: '#fde68a' };
+      case 'LOW':
+        return { bg: '#dcfce7', text: '#166534', border: '#86efac' };
+      default:
+        return { bg: '#f8fafc', text: '#64748b', border: '#e2e8f0' };
+    }
+  };
+
+  const riskStyle = getRiskStyles(riskLevel);
 
   return (
     <div
@@ -136,7 +163,7 @@ export const LocationCard: React.FC<LocationCardProps> = ({
           />
           <span style={{ color: '#475569' }}>
             {inc.status === 'success'
-              ? `${inc.incident_count || 0} incidents ${accidents > 0 ? `(${accidents} accident)` : ''}`
+              ? `${inc.incident_count || 0} reported incidents ${accidents > 0 ? `(${accidents} verified accident)` : ''}`
               : inc.status === 'unconfigured'
               ? 'Incidents unconfigured'
               : 'Incidents unavailable'}
@@ -153,29 +180,57 @@ export const LocationCard: React.FC<LocationCardProps> = ({
               background: flow.congestion_ratio >= 0.4 ? '#fee2e2' : flow.congestion_ratio >= 0.2 ? '#fef3c7' : '#dcfce7',
               color: flow.congestion_ratio >= 0.4 ? '#991b1b' : flow.congestion_ratio >= 0.2 ? '#92400e' : '#166534',
             }}
+            title="Observed traffic speed deficit (traffic congestion), distinct from accidents"
           >
             {Math.round(flow.congestion_ratio * 100)}% Congestion
           </div>
         )}
       </div>
 
-      {/* Risk Status Indicator */}
-      <div
-        style={{
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
-          padding: '0.45rem 0.65rem',
-          borderRadius: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          fontSize: '0.72rem',
-          color: '#166534',
-        }}
-      >
-        <ShieldCheck size={14} color="#16a34a" />
-        <span>Risk Assessment: <strong>AI Severity Pipeline Active</strong> (Click to inspect)</span>
-      </div>
+      {/* Predicted Accident Risk Section */}
+      {hasValidRisk ? (
+        <div
+          style={{
+            background: riskStyle.bg,
+            border: `1px solid ${riskStyle.border}`,
+            padding: '0.55rem 0.75rem',
+            borderRadius: '6px',
+            color: riskStyle.text,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.75rem', fontWeight: 700 }}>
+              <BrainCircuit size={15} />
+              <span>Predicted Risk: {riskLevel} ({riskScore} / 100)</span>
+            </div>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, opacity: 0.9 }}>
+              {risk_assessment?.predicted_severity_class} Propensity
+            </span>
+          </div>
+          <div style={{ fontSize: '0.68rem', marginTop: '0.2rem', opacity: 0.85 }}>
+            Model estimate (v1.0) &bull; Not a confirmed accident
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            padding: '0.55rem 0.75rem',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            fontSize: '0.72rem',
+            color: '#64748b',
+          }}
+        >
+          <ShieldAlert size={15} color="#94a3b8" />
+          <span>
+            Predicted Risk: <strong>Unavailable</strong> ({risk_assessment?.error_message || 'Awaiting telemetry'})
+          </span>
+        </div>
+      )}
 
       {/* Footer Timestamp */}
       <div
@@ -190,7 +245,9 @@ export const LocationCard: React.FC<LocationCardProps> = ({
         }}
       >
         <Clock size={12} />
-        <span>Updated: {new Date(weather.timestamp || flow.timestamp).toLocaleTimeString()}</span>
+        <span>
+          Telemetry: {new Date(weather.timestamp || flow.timestamp).toLocaleTimeString()}
+        </span>
       </div>
     </div>
   );

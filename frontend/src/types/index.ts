@@ -120,14 +120,22 @@ export interface RiskAssessmentResponse {
   location_id: string;
   location_name: string;
   timestamp: string;
-  risk_score: number;
-  risk_level: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
-  predicted_severity_class: string;
-  severity_probability: number;
-  contributing_factors: RiskFactors;
+  risk_score?: number | null;
+  risk_level: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL' | 'UNAVAILABLE';
+  predicted_severity_class?: string | null;
+  severity_probability?: number | null;
+  contributing_factors?: RiskFactors | null;
   observed_inputs: ObservedTelemetryInputs;
-  model_status: 'ml_model_active' | 'heuristic_baseline' | 'unavailable';
+  model_status:
+    | 'ml_model_active'
+    | 'heuristic_baseline'
+    | 'model_unavailable'
+    | 'telemetry_unavailable'
+    | 'inference_error'
+    | 'unavailable';
   model_version: string;
+  status: 'success' | 'partial' | 'unavailable';
+  error_message?: string | null;
   limitations_note: string;
 }
 
@@ -140,6 +148,7 @@ export interface LocationOverview {
   weather: WeatherData;
   traffic_flow: TrafficFlowData;
   incidents: LocationIncidentsResponse;
+  risk_assessment?: RiskAssessmentResponse | null;
   overall_status: 'healthy' | 'partially_degraded' | 'unavailable' | 'unconfigured';
 }
 

@@ -85,8 +85,17 @@ Phase 0 ──► Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 
 
 ---
 
-### Phase 5: End-to-End Validation, Testing & Hardening
-- [ ] Backend test suite coverage refinement across network degradation and rate limit conditions.
-- [ ] Frontend responsive UI verification and mobile usability tuning.
-- [ ] Complete API reference documentation, deployment guides, and project defense documentation.
-- [ ] Final architecture review and handoff.
+### Phase 5: Accident-Risk Prediction Dashboard Integration (Completed)
+- [x] Integrate accident-risk prediction directly into the city-wide telemetry overview pipeline (`GET /api/v1/traffic-overview`).
+- [x] Update composite location schema (`LocationOverview`) to carry typed, validated `RiskAssessmentResponse` for every monitored corridor.
+- [x] Implement robust handling for missing, degraded, or unavailable provider inputs; enforce zero data fabrication.
+- [x] Add honest unavailable states (`model_unavailable`, `telemetry_unavailable`) when model weights or live weather cannot be verified.
+- [x] Enhance frontend dashboard components with full risk prediction integration:
+  - **SummaryCards:** Dedicated risk index metric tracking elevated risk corridors versus total evaluated locations.
+  - **LocationCard:** Color-coded risk tier badges (`LOW`, `MODERATE`, `HIGH`, `CRITICAL`, `UNAVAILABLE`), index score, and severity propensity.
+  - **MapView:** Marker popups with speed, congestion, weather, reported incidents, and predicted risk, plus clear spatial coverage disclaimers.
+  - **LocationDetailModal:** Tabbed risk analysis with concept definitions, score breakdown, ML severity propensity, factor weights, and an audit table of observed pipeline inputs.
+  - **Header:** Live AI Risk Model operational status indicator.
+- [x] Clear conceptual separation in UI: “Reported incident” vs. “Traffic congestion” vs. “Predicted accident risk”.
+- [x] Automated test suite expanded to 26 tests covering active prediction, unavailable models, weather failure degradation, and overview aggregation.
+- [x] Verified clean frontend production compilation with zero TypeScript errors.

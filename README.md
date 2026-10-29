@@ -124,17 +124,22 @@ smart-traffic-ai/
   - Implement external HTTP API clients for Open-Meteo current weather and TomTom Traffic Flow & Incidents with timeout resilience (5s), in-memory TTL caching, geographic incident matching (Haversine 3km), distinct accident categorization, concurrency via `asyncio.gather`, and endpoints (`/weather`, `/traffic`, `/incidents`, `/traffic-overview`).
 - [x] **Phase 3: Frontend Dashboard & Geospatial Visualization**
   - Build responsive React + TypeScript + Vite dashboard with interactive Leaflet map, corridor cards, drill-down modal, summary counters, and live provider status indicators.
-- [x] **Phase 4: Historical Accident Data & Accident-Risk Prediction Pipeline (Current)**
+- [x] **Phase 4: Historical Accident Data & Accident-Risk Prediction Pipeline**
   - Prepare documented benchmark historical accident dataset (`data/historical/raw/sample_accidents_raw.csv`), reproducible preprocessing pipeline without post-crash data leakage, time-based train/test splitting (80/20), baseline RandomForest classifier with class balancing, model metrics logging (`ROC-AUC 0.566`, `F1-macro 0.362`), and live inference endpoint (`GET /api/v1/locations/{id}/risk`).
-- [ ] **Phase 5: End-to-End Validation, Testing & Hardening**
-  - Comprehensive automated tests, error resilience, fallback handling, and deployment readiness.
+- [x] **Phase 5: Accident-Risk Prediction Dashboard Integration (Completed)**
+  - Seamlessly integrate accident risk prediction across the entire dashboard: `SummaryCards`, `MapView`, `LocationCard`, and `LocationDetailModal`.
+  - City-wide overview endpoint (`GET /api/v1/traffic-overview`) evaluates risk concurrently for all monitored Hyderabad corridors.
+  - Implement honest unavailable states when model weights or weather inputs are missing without inventing or fabricating data.
+  - Crisp domain concept separation: “Reported incident” vs. “Traffic congestion” vs. “Predicted accident risk”.
+  - 26 passing backend tests and 0-error TypeScript production build.
 
 ---
 
 ## 7. Current Implementation Status
 
-> **Status as of Phase 4:**
-> - Historical accident data pipeline (`scripts/data_prep.py` and `scripts/train_risk_model.py`) is fully functional.
-> - Multi-modal risk estimation endpoint (`GET /api/v1/locations/{id}/risk`) computes statistical risk index (0-100) and ML severity class predictions based on live congestion, weather, and road geometry.
-> - Frontend drill-down modal displays the live AI risk model breakdown and factor weights.
-> - Backend test suite (25 tests) and frontend production build pass with 100% success.
+> **Status as of Phase 5:**
+> - Full end-to-end integration of the accident-risk prediction pipeline into the React dashboard.
+> - City-wide telemetry overview (`GET /api/v1/traffic-overview`) and location risk endpoint (`GET /api/v1/locations/{id}/risk`) serve typed `RiskAssessmentResponse` data.
+> - Clear visual risk tiers (`LOW`, `MODERATE`, `HIGH`, `CRITICAL`, `UNAVAILABLE`) with ML severity propensity and factor breakdowns.
+> - Strict data integrity: zero data fabrication; verified unavailable states when telemetry is missing.
+> - Backend test suite (26 tests) and frontend production build pass cleanly.

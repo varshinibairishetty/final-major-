@@ -304,10 +304,15 @@ async def test_traffic_overview_endpoint():
             assert "weather" in first_loc
             assert "traffic_flow" in first_loc
             assert "incidents" in first_loc
+            assert "risk_assessment" in first_loc
             assert first_loc["weather"]["temperature_c"] == 28.0
             assert first_loc["traffic_flow"]["current_speed_kmh"] == 40
             assert first_loc["incidents"]["incident_count"] == 0
             assert first_loc["overall_status"] == "healthy"
+            assert first_loc["risk_assessment"] is not None
+            assert first_loc["risk_assessment"]["status"] == "success"
+            assert first_loc["risk_assessment"]["risk_score"] is not None
+            assert first_loc["risk_assessment"]["model_status"] == "ml_model_active"
 
 
 def test_invalid_location_404_for_all_endpoints():
