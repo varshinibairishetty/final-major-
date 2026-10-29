@@ -16,7 +16,7 @@ Phase 0 ──► Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 
 
 ## Detailed Phase Breakdown
 
-### Phase 0: Repository Setup and Configuration (Current)
+### Phase 0: Repository Setup and Configuration
 - [x] Create project directory layout across `backend/`, `frontend/`, `docs/`, and `data/`.
 - [x] Configure `.gitignore` to prevent secret leakage and untracked binary/cache bloat.
 - [x] Set up `.env.example` templates with clear variable descriptions.
@@ -26,10 +26,17 @@ Phase 0 ──► Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 
 
 ---
 
-### Phase 1: Live Traffic and Weather Integration
-- [ ] Configure Python virtual environment and install backend core dependencies (`fastapi`, `uvicorn`, `httpx`, `pydantic-settings`).
-- [ ] Implement `backend/app/core/config.py` using Pydantic Settings to load and validate environment variables.
-- [ ] Build curated Hyderabad location definitions file (`data/locations/hyderabad_hotspots.json`) covering 6-10 major traffic corridors.
+### Phase 1: Environment Setup and Minimal Working Backend (Current)
+- [x] Configure Python virtual environment (`backend/.venv`) and install minimal dependencies (`fastapi`, `uvicorn`, `httpx`, `pydantic-settings`, `pytest`).
+- [x] Implement `backend/app/core/config.py` loading environment settings with secret protection.
+- [x] Build authoritative Hyderabad location configuration in `data/locations/hyderabad_hotspots.json` with 5 example monitoring points (Gachibowli, Hitech City, Madhapur, Kukatpally, Jubilee Hills).
+- [x] Implement `GET /` metadata endpoint and `GET /api/v1/health` health check.
+- [x] Implement `GET /api/v1/locations` to return configured locations with approximate coordinates and disclaimer.
+- [x] Write and pass automated test suite in `backend/tests/test_api.py`.
+
+---
+
+### Phase 2: Live Traffic and Weather Integration (TomTom & Open-Meteo)
 - [ ] Implement `TomTomClient` service:
   - Query Traffic Flow Segment API (current speed, free-flow speed).
   - Query Traffic Incidents Details API (active incidents within bounding boxes).

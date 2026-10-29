@@ -1,6 +1,6 @@
 # Smart Traffic AI - Backend Service
 
-FastAPI-powered asynchronous backend service responsible for ingesting live traffic and weather data, calculating congestion indexes, computing accident risk estimations, and serving REST endpoints to the frontend dashboard.
+FastAPI-powered asynchronous backend service responsible for managing monitored locations, ingesting live traffic and weather data, calculating congestion indexes, computing accident risk estimations, and serving REST endpoints to the frontend dashboard.
 
 ---
 
@@ -8,65 +8,97 @@ FastAPI-powered asynchronous backend service responsible for ingesting live traf
 
 ```text
 backend/
+├── .venv/                   # Python virtual environment
 ├── app/
 │   ├── __init__.py
 │   ├── main.py              # Application entrypoint & CORS middleware
 │   ├── api/                 # API routers and versioned endpoints
 │   │   ├── __init__.py
-│   │   └── routes/          # Route handlers (traffic, weather, risk, locations)
-│   ├── core/                # Configuration and environment settings
-│   │   └── config.py
+│   │   └── routes/
+│   │       ├── __init__.py  # Aggregated v1 API router (/api/v1)
+│   │       ├── health.py    # Health check endpoint (/api/v1/health)
+│   │       └── locations.py # Hyderabad locations endpoint (/api/v1/locations)
+│   ├── core/
+│   │   ├── __init__.py
+│   │   └── config.py        # Environment settings (safe representation, no leaked secrets)
 │   ├── models/              # Domain entities
-│   ├── schemas/             # Pydantic request/response schemas
-│   └── services/            # TomTom client, Open-Meteo client, risk engine
-├── tests/                   # Pytest test cases
+│   ├── schemas/             # Pydantic validation schemas
+│   │   ├── __init__.py
+│   │   └── location.py      # Location and LocationListResponse models
+│   └── services/            # Core business logic and external API integrations
+│       ├── __init__.py
+│       └── location_service.py # Authoritative location loader
+├── tests/                   # Automated pytest suite
+│   ├── __init__.py
+│   └── test_api.py          # Route tests (root, health, locations)
 ├── .env.example             # Environment configuration template
-├── requirements.txt         # Python package dependencies
+├── requirements.txt         # Minimal production and test dependencies
 └── README.md                # Backend documentation
 ```
 
 ---
 
-## 2. Setup & Installation (Phase 1 Preview)
+## 2. Setup & Execution
 
-*Note: Dependencies are scheduled for installation in Phase 1.*
+### 1. Python Environment Setup
+The project uses a Python virtual environment located in `backend/.venv`.
 
-### 1. Create a Python Virtual Environment
+**Activate on Windows (PowerShell):**
+```powershell
+# From the workspace root:
+.\backend\.venv\Scripts\Activate.ps1
+
+# Or if you are inside the backend directory:
+.\.venv\Scripts\Activate.ps1
+```
+
+**Activate on Linux / macOS:**
 ```bash
-# From the project root or backend directory:
-python -m venv .venv
-
-# Activate on Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-
-# Activate on Linux/macOS:
-source .venv/bin/activate
+source backend/.venv/bin/activate
 ```
 
 ### 2. Install Dependencies
 ```bash
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-### 3. Configure Environment Variables
-Copy `.env.example` to `.env` in the `backend/` directory or project root:
-```bash
-cp .env.example .env
+### 3. Environment Configuration (Optional for Phase 1)
+Copy `.env.example` to `.env` in the `backend/` folder:
+```powershell
+Copy-Item backend\.env.example backend\.env
 ```
-Ensure `TOMTOM_API_KEY` is populated.
+*(The backend runs in Phase 1 with safe defaults even without `.env` or without a TomTom API key).*
 
 ### 4. Run the Development Server
-```bash
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+**From the repository root:**
+```powershell
+.\backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --app-dir backend --host 127.0.0.1 --port 8000
 ```
-Interactive API documentation will be accessible at:
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
+
+**From inside `backend/`:**
+```powershell
+cd backend
+..\backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Once running, interactive API documentation is available at:
+- **Root Status:** `http://127.0.0.1:8000/`
+- **Health Check:** `http://127.0.0.1:8000/api/v1/health`
+- **Monitored Locations:** `http://127.0.0.1:8000/api/v1/locations`
+- **Interactive Swagger Docs:** `http://127.0.0.1:8000/docs`
+- **Alternative ReDoc Docs:** `http://127.0.0.1:8000/redoc`
 
 ---
 
-## 3. Testing
-```bash
-pytest tests/
+## 3. Running Automated Tests
+
+Run the test suite using pytest:
+```powershell
+# From the workspace root:
+.\backend\.venv\Scripts\python.exe -m pytest -v backend/tests
+
+# Or with virtual environment activated:
+pytest -v backend/tests
 ```
+Tests run fully offline and do not require internet access or external credentials.

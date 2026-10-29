@@ -116,24 +116,27 @@ smart-traffic-ai/
 
 ## 6. Planned Development Phases
 
-- [x] **Phase 0: Repository Setup & Foundational Architecture (Current)**
+- [x] **Phase 0: Repository Setup & Foundational Architecture**
   - Establish directory structure, baseline documentation, ADRs, security boundaries, and project guidelines.
-- [ ] **Phase 1: Backend Setup & API Integrations**
-  - Implement FastAPI core, location registry for Hyderabad, and HTTP clients for TomTom & Open-Meteo.
-- [ ] **Phase 2: Normalization, Incident Processing & Provisional Risk Engine**
+- [x] **Phase 1: Environment Setup and Minimal Working Backend (Current)**
+  - Configure Python virtual environment (`.venv`), install core dependencies, implement `Settings` config with secret safety, authoritative Hyderabad location registry (`data/locations/hyderabad_hotspots.json`), `GET /`, `GET /api/v1/health`, `GET /api/v1/locations` endpoints, and automated tests.
+- [ ] **Phase 2: Live Traffic & Weather Integration (TomTom & Open-Meteo)**
+  - Implement external HTTP API clients with timeout resilience, caching, and error fallbacks.
+- [ ] **Phase 3: Normalization, Incident Processing & Provisional Risk Engine**
   - Transform external telemetry into unified schemas, calculate congestion metrics, and build heuristic risk scoring.
-- [ ] **Phase 3: Frontend Dashboard & Geospatial Visualization**
+- [ ] **Phase 4: Frontend Dashboard & Geospatial Visualization**
   - Develop React + Leaflet map view, live risk badges, incident timeline, and freshness indicators.
-- [ ] **Phase 4: Historical Accident Data & ML Risk Model**
+- [ ] **Phase 5: Historical Accident Data & ML Risk Model**
   - Ingest historical accident data, perform feature engineering, train ML models (scikit-learn / XGBoost), and compare with heuristic baseline.
-- [ ] **Phase 5: End-to-End Validation, Testing & Hardening**
+- [ ] **Phase 6: End-to-End Validation, Testing & Hardening**
   - Comprehensive automated tests, error resilience, fallback handling, and deployment readiness.
 
 ---
 
 ## 7. Current Implementation Status
 
-> **Status as of Phase 0:**
-> - The repository structure, Git configuration, documentation, ADRs, backend scaffolding, and frontend scaffolding have been created.
-> - **No live application code, API fetchers, frontend widgets, or ML models are implemented yet.**
-> - Dependencies have **not** been installed yet and will be set up in subsequent phases.
+> **Status as of Phase 1:**
+> - Minimal working FastAPI backend is implemented and tested with 100% pass rate.
+> - Authoritative Hyderabad locations configuration is established in `data/locations/hyderabad_hotspots.json`.
+> - Working endpoints: `GET /`, `GET /api/v1/health`, and `GET /api/v1/locations`.
+> - External APIs (TomTom, Open-Meteo), frontend UI, and ML models are scheduled for subsequent phases.
