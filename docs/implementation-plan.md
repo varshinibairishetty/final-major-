@@ -36,14 +36,24 @@ Phase 0 ──► Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 
 
 ---
 
-### Phase 2: Live Traffic and Weather Integration (TomTom & Open-Meteo)
-- [ ] Implement `TomTomClient` service:
-  - Query Traffic Flow Segment API (current speed, free-flow speed).
+### Phase 2: Live Traffic and Weather Integration (TomTom & Open-Meteo) (Current)
+- [x] Implement `OpenMeteoWeatherService`:
+  - Query current weather metrics (temperature, relative humidity, precipitation, rain, weather code, wind speed).
+  - Map WMO weather codes to human-readable condition summaries.
+  - Integrate in-memory TTL caching (15 min) and timeout management (5s).
+- [x] Implement `TomTomTrafficService`:
+  - Query Traffic Flow Segment API (current speed, free-flow speed, travel times, congestion ratio).
   - Query Traffic Incidents Details API (active incidents within bounding boxes).
-  - Add timeout management (5s), retry handling, and error response formatting.
-- [ ] Implement `OpenMeteoClient` service:
-  - Query current weather metrics (rain, showers, precipitation, visibility).
-- [ ] Write isolated unit tests for API clients with mocked HTTP payloads.
+  - Implement Haversine distance geographic matching (3km radius) and incident deduplication.
+  - Strictly distinguish provider-verified accidents from general traffic jams/congestion.
+  - Return clear unconfigured state when `TOMTOM_API_KEY` is missing without failing application startup.
+  - Add timeout management (5s) and error response formatting without data fabrication.
+- [x] Expose REST endpoints under `/api/v1`:
+  - `GET /api/v1/locations/{id}/weather`
+  - `GET /api/v1/locations/{id}/traffic`
+  - `GET /api/v1/locations/{id}/incidents`
+  - `GET /api/v1/traffic-overview` (concurrent multi-location aggregation via `asyncio.gather`).
+- [x] Write and pass 20 automated tests with mock HTTP responses covering success, timeout, errors, and unconfigured credentials.
 
 ---
 

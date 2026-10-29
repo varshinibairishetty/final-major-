@@ -118,12 +118,12 @@ smart-traffic-ai/
 
 - [x] **Phase 0: Repository Setup & Foundational Architecture**
   - Establish directory structure, baseline documentation, ADRs, security boundaries, and project guidelines.
-- [x] **Phase 1: Environment Setup and Minimal Working Backend (Current)**
+- [x] **Phase 1: Environment Setup and Minimal Working Backend**
   - Configure Python virtual environment (`.venv`), install core dependencies, implement `Settings` config with secret safety, authoritative Hyderabad location registry (`data/locations/hyderabad_hotspots.json`), `GET /`, `GET /api/v1/health`, `GET /api/v1/locations` endpoints, and automated tests.
-- [ ] **Phase 2: Live Traffic & Weather Integration (TomTom & Open-Meteo)**
-  - Implement external HTTP API clients with timeout resilience, caching, and error fallbacks.
+- [x] **Phase 2: Live Traffic & Weather Integration (TomTom & Open-Meteo) (Current)**
+  - Implement external HTTP API clients for Open-Meteo current weather and TomTom Traffic Flow & Incidents with timeout resilience (5s), in-memory TTL caching, geographic incident matching (Haversine 3km), distinct accident categorization, concurrency via `asyncio.gather`, and endpoints (`/weather`, `/traffic`, `/incidents`, `/traffic-overview`).
 - [ ] **Phase 3: Normalization, Incident Processing & Provisional Risk Engine**
-  - Transform external telemetry into unified schemas, calculate congestion metrics, and build heuristic risk scoring.
+  - Synthesize external telemetry into unified risk schemas, calculate congestion metrics, and build heuristic risk scoring.
 - [ ] **Phase 4: Frontend Dashboard & Geospatial Visualization**
   - Develop React + Leaflet map view, live risk badges, incident timeline, and freshness indicators.
 - [ ] **Phase 5: Historical Accident Data & ML Risk Model**
@@ -135,8 +135,11 @@ smart-traffic-ai/
 
 ## 7. Current Implementation Status
 
-> **Status as of Phase 1:**
-> - Minimal working FastAPI backend is implemented and tested with 100% pass rate.
-> - Authoritative Hyderabad locations configuration is established in `data/locations/hyderabad_hotspots.json`.
-> - Working endpoints: `GET /`, `GET /api/v1/health`, and `GET /api/v1/locations`.
-> - External APIs (TomTom, Open-Meteo), frontend UI, and ML models are scheduled for subsequent phases.
+> **Status as of Phase 2:**
+> - Full live traffic and weather API integration is active.
+> - Open-Meteo weather service fetches real-time atmospheric measurements.
+> - TomTom traffic flow service retrieves real-time speed, free-flow speed, travel times, and congestion ratios.
+> - TomTom incidents service fetches provider-reported road hazards within 3km of each junction, strictly distinguishing accidents from general congestion.
+> - In-memory TTL caching ensures API quota efficiency.
+> - City-wide `/api/v1/traffic-overview` concurrently queries all monitored locations.
+> - Automated test suite with 20 offline unit and integration tests passing at 100%.

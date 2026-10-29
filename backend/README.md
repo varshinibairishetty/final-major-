@@ -1,6 +1,6 @@
 # Smart Traffic AI - Backend Service
 
-FastAPI-powered asynchronous backend service responsible for managing monitored locations, ingesting live traffic and weather data, calculating congestion indexes, computing accident risk estimations, and serving REST endpoints to the frontend dashboard.
+FastAPI-powered asynchronous backend service responsible for managing monitored locations, ingesting live traffic and weather data from external APIs (TomTom and Open-Meteo), calculating congestion indexes, computing accident risk estimations, and serving REST endpoints to the frontend dashboard.
 
 ---
 
@@ -17,22 +17,31 @@ backend/
 │   │   └── routes/
 │   │       ├── __init__.py  # Aggregated v1 API router (/api/v1)
 │   │       ├── health.py    # Health check endpoint (/api/v1/health)
-│   │       └── locations.py # Hyderabad locations endpoint (/api/v1/locations)
+│   │       ├── locations.py # Hyderabad locations endpoint (/api/v1/locations)
+│   │       ├── traffic.py   # Traffic flow, incidents, and overview endpoints
+│   │       └── weather.py   # Open-Meteo weather endpoint
 │   ├── core/
 │   │   ├── __init__.py
 │   │   └── config.py        # Environment settings (safe representation, no leaked secrets)
 │   ├── models/              # Domain entities
 │   ├── schemas/             # Pydantic validation schemas
 │   │   ├── __init__.py
-│   │   └── location.py      # Location and LocationListResponse models
+│   │   ├── location.py      # Location and LocationListResponse models
+│   │   ├── traffic.py       # TrafficFlowData, TrafficIncident, Overview models
+│   │   └── weather.py       # WeatherData normalization models
 │   └── services/            # Core business logic and external API integrations
 │       ├── __init__.py
-│       └── location_service.py # Authoritative location loader
+│       ├── cache.py         # Thread-safe in-memory TTL caching layer
+│       ├── location_service.py # Authoritative location loader
+│       ├── tomtom_service.py   # TomTom Flow & Incidents client
+│       └── weather_service.py  # Open-Meteo weather client
 ├── tests/                   # Automated pytest suite
 │   ├── __init__.py
-│   └── test_api.py          # Route tests (root, health, locations)
+│   ├── test_api.py          # Route tests (root, health, locations)
+│   ├── test_traffic.py      # TomTom flow, incident matching, and overview tests
+│   └── test_weather.py      # Open-Meteo weather integration and caching tests
 ├── .env.example             # Environment configuration template
-├── requirements.txt         # Minimal production and test dependencies
+├── requirements.txt         # Production and test dependencies
 └── README.md                # Backend documentation
 ```
 
@@ -63,12 +72,17 @@ pip install --upgrade pip
 pip install -r backend/requirements.txt
 ```
 
-### 3. Environment Configuration (Optional for Phase 1)
+### 3. Environment Configuration
 Copy `.env.example` to `.env` in the `backend/` folder:
 ```powershell
 Copy-Item backend\.env.example backend\.env
 ```
-*(The backend runs in Phase 1 with safe defaults even without `.env` or without a TomTom API key).*
+
+To enable live TomTom traffic flow and incidents, obtain a developer key from [TomTom Developer Portal](https://developer.tomtom.com/) and populate:
+```env
+TOMTOM_API_KEY=your_actual_tomtom_api_key
+```
+*(Open-Meteo standard endpoints require no API key. If `TOMTOM_API_KEY` is omitted, the backend starts normally and gracefully returns status `unconfigured` for traffic endpoints without failing).*
 
 ### 4. Run the Development Server
 **From the repository root:**
@@ -82,18 +96,28 @@ cd backend
 ..\backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Once running, interactive API documentation is available at:
-- **Root Status:** `http://127.0.0.1:8000/`
-- **Health Check:** `http://127.0.0.1:8000/api/v1/health`
-- **Monitored Locations:** `http://127.0.0.1:8000/api/v1/locations`
-- **Interactive Swagger Docs:** `http://127.0.0.1:8000/docs`
-- **Alternative ReDoc Docs:** `http://127.0.0.1:8000/redoc`
+---
+
+## 3. Available Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `GET /` | `GET` | Service root and active phase metadata |
+| `GET /api/v1/health` | `GET` | Uptime and service health check |
+| `GET /api/v1/locations` | `GET` | Configured Hyderabad monitoring locations list |
+| `GET /api/v1/locations/{id}` | `GET` | Single location metadata and coordinates |
+| `GET /api/v1/locations/{id}/weather` | `GET` | Real-time weather observation from Open-Meteo |
+| `GET /api/v1/locations/{id}/traffic` | `GET` | Real-time speed, delay, and congestion index from TomTom |
+| `GET /api/v1/locations/{id}/incidents` | `GET` | Active provider-reported incidents and accidents |
+| `GET /api/v1/traffic-overview` | `GET` | Concurrent city-wide aggregation across all monitored locations |
+| `GET /docs` | `GET` | Interactive Swagger API documentation |
+| `GET /redoc` | `GET` | ReDoc API documentation |
 
 ---
 
-## 3. Running Automated Tests
+## 4. Running Automated Tests
 
-Run the test suite using pytest:
+Run the full automated test suite with pytest:
 ```powershell
 # From the workspace root:
 .\backend\.venv\Scripts\python.exe -m pytest -v backend/tests
@@ -101,4 +125,4 @@ Run the test suite using pytest:
 # Or with virtual environment activated:
 pytest -v backend/tests
 ```
-Tests run fully offline and do not require internet access or external credentials.
+All tests mock network calls and run fully offline.

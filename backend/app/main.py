@@ -22,7 +22,8 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up %s (v%s) in '%s' environment", settings.PROJECT_NAME, settings.VERSION, settings.ENVIRONMENT)
     logger.info("Configured CORS origins: %s", settings.CORS_ORIGINS)
     logger.info("Authoritative locations file: %s", settings.LOCATIONS_FILE_PATH)
-    # Zero external API calls at startup (satisfying Phase 1 requirements)
+    logger.info("TomTom API key configured: %s", bool(settings.TOMTOM_API_KEY and settings.TOMTOM_API_KEY != "your_tomtom_api_key_here"))
+    # Zero external API calls at startup (satisfies project constraint)
     yield
     # Shutdown
     logger.info("Shutting down %s", settings.PROJECT_NAME)
@@ -57,11 +58,15 @@ async def root():
         "project": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "status": "operational",
-        "phase": "Phase 1 - Minimal Working Backend",
+        "phase": "Phase 2 - Live Traffic and Weather API Integration",
         "endpoints": {
             "docs": "/docs",
             "health": "/api/v1/health",
             "locations": "/api/v1/locations",
+            "weather": "/api/v1/locations/{location_id}/weather",
+            "traffic": "/api/v1/locations/{location_id}/traffic",
+            "incidents": "/api/v1/locations/{location_id}/incidents",
+            "traffic_overview": "/api/v1/traffic-overview",
         },
     }
 

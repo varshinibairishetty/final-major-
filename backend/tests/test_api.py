@@ -15,7 +15,7 @@ def test_root_endpoint():
     assert "project" in data
     assert "Multimodal" in data["project"]
     assert data["status"] == "operational"
-    assert data["phase"] == "Phase 1 - Minimal Working Backend"
+    assert "Phase 2" in data["phase"]
     assert "endpoints" in data
 
 
